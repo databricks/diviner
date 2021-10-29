@@ -16,6 +16,7 @@ def restructure_fit_payload(train_results: List[Dict[str, any]]) -> Dict[str, an
         for group_key, model in payload.items()
     }
 
+
 def _reorder_cols(df, key_columns: List[str], master_grouping_key: str) -> pd.DataFrame:
     """
     Helper function for creating a user-friendly schema structure for the output prediction
@@ -26,7 +27,9 @@ def _reorder_cols(df, key_columns: List[str], master_grouping_key: str) -> pd.Da
     :param master_grouping_key: the master grouping key for setting the position of that column
     :return: a reformatted and modified schema of the prediction dataframe
     """
-    masked_columns = [col for col in df.columns if col not in key_columns + [master_grouping_key]]
+    masked_columns = [
+        col for col in df.columns if col not in key_columns + [master_grouping_key]
+    ]
     reordered_df = df[[master_grouping_key] + key_columns + masked_columns]
     return reordered_df
 
@@ -43,7 +46,9 @@ def restructure_predictions(prediction_dfs, key_columns, master_key):
     """
 
     prediction_output = pd.concat(prediction_dfs).reset_index(drop=True)
-    prediction_output[key_columns] = pd.DataFrame(prediction_output[master_key].tolist(), index=prediction_output.index)
+    prediction_output[key_columns] = pd.DataFrame(
+        prediction_output[master_key].tolist(), index=prediction_output.index
+    )
     reordered = _reorder_cols(prediction_output, key_columns, master_key)
     return reordered
 

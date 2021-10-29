@@ -1,7 +1,5 @@
 import abc
-from typing import List
 from collections import defaultdict
-from diviner.config.base_config import BaseConfig
 
 
 class GroupedForecaster(abc.ABC):
@@ -16,10 +14,11 @@ class GroupedForecaster(abc.ABC):
         Subclasses must raise :py:class:`diviner.exceptions.DivinerException` in error cases
         that involve the logical execution involved in this package.
     """
+
     def __init__(self):
         self.group_key_columns = None
         self.model = defaultdict(dict)
-        self.master_key = BaseConfig.GROUPING_COLUMN.value
+        self.master_key = "grouping_key"
 
     @abc.abstractmethod
     def fit(self, df, group_key_columns, **kwargs):
@@ -45,7 +44,7 @@ class GroupedForecaster(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def forecast(self, horizon: int, period_type: str):
+    def forecast(self, horizon: int, frequency: str):
         pass
 
     @abc.abstractmethod

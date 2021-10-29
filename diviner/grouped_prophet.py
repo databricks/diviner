@@ -1,13 +1,10 @@
 import os
 from copy import deepcopy
 from prophet import Prophet
-from tqdm import tqdm
 
 from diviner.exceptions import DivinerException
 from diviner.model.base_model import GroupedForecaster
 from diviner.data.pandas_generator import PandasGroupGenerator
-from diviner.config.base_config import BaseConfig
-from diviner.config.grouped_prophet.prophet_config import get_prophet_init
 from diviner.utils.prophet_utils import (
     generate_future_dfs,
     cross_validate_model,
@@ -39,13 +36,17 @@ class GroupedProphet(GroupedForecaster):
     grouped models within the submitted DataFrame.
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
+        """
+
+        :param kwargs: Prophet class configuration overrides
+        """
         super().__init__()
+        self.kwargs = kwargs
 
-    @staticmethod
-    def _fit_prophet(group_key, df, **model_conf):
+    def _fit_prophet(self, group_key, df, **kwargs):
 
-        return {group_key: Prophet(**model_conf).fit(df)}
+        return {group_key: Prophet(**self.kwargs).fit(df, **kwargs)}
 
     @model_init_check
     def fit(self, df, group_key_columns, **kwargs):
@@ -56,26 +57,20 @@ class GroupedProphet(GroupedForecaster):
         that represents a 'core' series to be fit against.
         :param df:
         :param group_key_columns:
-        :param kwargs:
+        :param kwargs: overrides for PyStan configuration for fitting.
         :return:
         """
 
         self.group_key_columns = group_key_columns
 
         validate_keys_in_df(df, self.group_key_columns)
-        tqdm_on = kwargs.get("tqdm_on", BaseConfig.TQDM_ON)
 
         grouped_data = PandasGroupGenerator(
             self.group_key_columns
         ).generate_processing_groups(df)
 
-        grouped_data = tqdm(grouped_data) if tqdm_on else grouped_data
-
-        model_conf = get_prophet_init(**kwargs)
-
         fit_model = [
-            self._fit_prophet(group_key, df, **model_conf)
-            for group_key, df in grouped_data
+            self._fit_prophet(group_key, df, **kwargs) for group_key, df in grouped_data
         ]
 
         self.model = restructure_fit_payload(fit_model)
@@ -96,9 +91,7 @@ class GroupedProphet(GroupedForecaster):
 
         return raw_prediction
 
-    def _run_predictions(self, grouped_data, tqdm_on):
-
-        grouped_data = tqdm(grouped_data) if tqdm_on else grouped_data
+    def _run_predictions(self, grouped_data):
 
         predictions = [
             self._predict_prophet(group_key, df) for group_key, df in grouped_data
@@ -112,21 +105,18 @@ class GroupedProphet(GroupedForecaster):
     def predict(self, df, **kwargs):
 
         validate_keys_in_df(df, self.group_key_columns)
-        tqdm_on = kwargs.get("tqdm_on", BaseConfig.TQDM_ON)
 
         grouped_data = PandasGroupGenerator(
             self.group_key_columns
         ).generate_processing_groups(df)
 
-        return self._run_predictions(grouped_data, tqdm_on)
+        return self._run_predictions(grouped_data)
 
     @fit_check
-    def cross_validation(self, cv_initial, cv_period, cv_horizon, parallel=None):
+    def cross_validation(self, **kwargs):
 
         scores = {
-            group_key: cross_validate_model(
-                model, cv_initial, cv_period, cv_horizon, parallel
-            )
+            group_key: cross_validate_model(model, **kwargs)
             for group_key, model in self.model.items()
         }
 
@@ -142,12 +132,11 @@ class GroupedProphet(GroupedForecaster):
         )
 
     @fit_check
-    def forecast(self, horizon: int, period_type: str, **kwargs):
+    def forecast(self, horizon: int, frequency: str, **kwargs):
 
-        tqdm_on = kwargs.get("tqdm_on", BaseConfig.TQDM_ON)
-        grouped_data = generate_future_dfs(self.model, horizon, period_type)
+        grouped_data = generate_future_dfs(self.model, horizon, frequency)
 
-        return self._run_predictions(grouped_data, tqdm_on)
+        return self._run_predictions(grouped_data)
 
     @fit_check
     def save(self, path: str):

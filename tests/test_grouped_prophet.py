@@ -54,13 +54,15 @@ def test_prophet_save_and_load():
     assert len(forecasts) == 50
 
 
-def test_prophet_execution_with_kwargs_override():
+def test_prophet_execution_with_kwargs_override_for_pystan():
 
     train = data_generator.generate_test_data(4, 6, 1000, "2020-01-01", 1)
 
     default_prophet_uncertainty_samples = Prophet().uncertainty_samples
 
-    model = GroupedProphet().fit(train.df, train.key_columns, uncertainty_samples=0)
+    model = GroupedProphet(uncertainty_samples=0).fit(
+        train.df, train.key_columns, algorithm="LBFGS"
+    )
 
     last_model = _get_individual_model(model, 5)
 
@@ -72,12 +74,32 @@ def test_prophet_cross_validation_extract():
 
     train = data_generator.generate_test_data(4, 6, 1000, "2020-01-01", 1)
 
-    model = GroupedProphet().fit(train.df, train.key_columns, uncertainty_samples=0)
+    model = GroupedProphet(uncertainty_samples=0).fit(train.df, train.key_columns)
 
     scores = model.cross_validation(
-        cv_initial="100 days", cv_period="90 days", cv_horizon="15 days", parallel=None
+        initial="100 days", period="90 days", horizon="15 days", parallel=None
     )
 
     assert all(scores["rmse"] > 0)
     assert len(scores) == 6
+    assert "coverage" not in scores
+
+
+def test_prophet_cross_validation_extract_custom_scores():
+
+    train = data_generator.generate_test_data(4, 2, 1000, "2020-01-01", 1)
+
+    model = GroupedProphet(uncertainty_samples=0).fit(train.df, train.key_columns)
+
+    scores = model.cross_validation(
+        initial="100 days",
+        period="90 days",
+        horizon="15 days",
+        parallel=None,
+        metrics=["rmse", "mape"],
+        disable_tqdm=False,
+    )
+
+    assert all(scores["rmse"] > 0)
+    assert len(scores) == 2
     assert "coverage" not in scores
