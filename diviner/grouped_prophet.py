@@ -79,7 +79,8 @@ class GroupedProphet(GroupedForecaster):
         ).generate_processing_groups(df)
 
         fit_model = [
-            self._fit_prophet(group_key, df, **kwargs) for group_key, df in grouped_data
+            self._fit_prophet(group_key, group_df, **kwargs)
+            for group_key, group_df in grouped_data
         ]
 
         self.model = restructure_fit_payload(fit_model)

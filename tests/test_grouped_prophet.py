@@ -7,6 +7,7 @@ import shutil
 
 
 def _get_individual_model(model, index):
+    #  TODO: abstract this into a test helper module
 
     _model_key = list(model.model.keys())[index]
     return model.model[_model_key]
