@@ -45,6 +45,14 @@ def generate_future_dfs(grouped_model, horizon: int, frequency: str):
 
 
 def cross_validate_model(model, **kwargs):
+    """
+    Wrapper around Prophet's cross_validation function within the `prophet.diagnostics` module.
+    Provides backtesting metric evaluation based on the configurations specified for
+    initial, horizon, and period (optionally manual 'cutoffs' as well).
+    :param model: Prophet model instance that has been fit
+    :param kwargs: cross validation overrides for Prophet's implementation of backtesting
+    :return: Dict[str, float] of each metric and its averaged (over each time horizon) value.
+    """
     # If uncertainty samples is set to 0, calculating 'coverage' parameter is useless.
     base_metrics = get_base_metrics(uncertainty_samples=model.uncertainty_samples)
     user_metrics = kwargs.pop("metrics", base_metrics)
@@ -60,11 +68,27 @@ def cross_validate_model(model, **kwargs):
 
 
 def extract_params(model):
+    """
+    Helper function for retrieving the model parameters from a single Prophet model.
+    :param model: A trained (fit) Prophet model instance
+    :return: Dict[str, any] of tunable parameters for a Prophet model
+    """
 
     return {param: getattr(model, param) for param in get_extract_params()}
 
 
 def create_reporting_df(extract_dict, master_key, group_key_columns):
+    """
+    Structural consolidation extract for the GroupedProphet model to generate an MLflow
+    artifact-compatible representation of each of the group's model attributes (metrics or
+    params) for a single run.
+    :param extract_dict: Extracted attributes from a Prophet model
+    :param master_key: The master grouping key column name
+    :param group_key_columns: The names of the grouping key columns used to train
+                              and instance of GroupedProphet model
+    :return: A Pandas DataFrame containing the attributes, grouping keys, and master grouping key
+             as columns with a row for each unique group's model.
+    """
     base_df = pd.DataFrame.from_dict(extract_dict).T.sort_index(inplace=False)
     base_df[master_key] = base_df.index.to_numpy()
     base_df.index.names = group_key_columns

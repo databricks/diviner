@@ -1,18 +1,45 @@
 from diviner.data.base_generator import BaseGroupGenerator
-from diviner.data.utils import validate_group_key_schema
+from diviner.utils.common import validate_keys_in_df
 import pandas as pd
 from typing import List
 
 
 class PandasGroupGenerator(BaseGroupGenerator):
+    """
+    This class is used to convert a normalized collection of time series data within a single
+    DataFrame, e.g.:
+
+    |region     |zone|ds          |y     |
+    |'northeast'|1   |"2021-10-01"|1234.5|
+    |'northeast'|2   |"2021-10-01"|3255.6|
+    |'northeast'|1   |"2021-10-02"|1255.9|
+
+    With the grouping keys ['region', 'zone'] define the unique series of the target 'y' indexed
+    by 'ds'.
+
+    This class will:
+    - Generate a 'master group key' that is a tuple zip of the grouping key arguments specified
+        by the user, preserving the order of declaration of these keys.
+    - Group the DataFrame by these master grouping keys and generate a collection of tuples
+        of the form (master_grouping_key, <series DataFrame>) which is used for iterating over
+        to generate the individualized forecasting models for each master key group.
+    """
     def __init__(self, group_key_columns: List[str]):
+        """
+        :param group_key_columns: Grouping columns that a combination of which designates a
+                                  combination of 'ds' and 'y' that represent a distinct series
+        """
         super().__init__(group_key_columns)
 
     def _create_master_key_column(self, df) -> pd.DataFrame:
+        """
+        Method for creating the 'master_group_key' column that defines a unique group
+        :param df: The normalized DataFrame
+        :return: A copy of the passed-in DataFrame with a master grouping key column added
+                 that contains the group definitions per row of the DataFrame.
+        """
 
-        validate_group_key_schema(
-            schema=list(df.columns), group_keys=self.group_key_columns
-        )
+        validate_keys_in_df(df, self.group_key_columns)
 
         master_group_df = df.copy()
         master_group_df[self.master_group_key] = master_group_df[
@@ -21,6 +48,13 @@ class PandasGroupGenerator(BaseGroupGenerator):
         return master_group_df
 
     def generate_processing_groups(self, df):
+        """
+        Method for generating the collection of [(master_grouping_key, <group DataFrame)]
+        :param df: Normalized DataFrame that contains the instance variable `group_key_columns`
+                   within its schema.
+        :return: List(tuple(master_group_key, df)) the processing collection of DataFrames
+                 coupled with their group identifier.
+        """
 
         master_key_generation = self._create_master_key_column(df)
 

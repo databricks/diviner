@@ -102,6 +102,6 @@ def validate_keys_in_df(df, key_columns: List[str]):
     columns_list = list(df.columns)
     if not all(col in columns_list for col in key_columns):
         raise DivinerException(
-            f"Not all key grouping columns supplied: '{key_columns}' are present "
-            f"in the submitted df: '{columns_list}'"
+            f"Not all key grouping columns supplied: {key_columns} are present "
+            f"in the submitted df: {columns_list}"
         )
