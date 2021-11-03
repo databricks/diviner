@@ -154,7 +154,7 @@ class GroupedProphet(GroupedForecaster):
         return self._run_predictions(grouped_data)
 
     @fit_check
-    def cross_validation(self, **kwargs):
+    def cross_validation(self, metrics=None, **kwargs):
         """
         Metric scoring method that will run backtesting cross validation scoring for each
         time series specified within the model after a `.fit()` has been performed.
@@ -166,6 +166,13 @@ class GroupedProphet(GroupedForecaster):
         will not be calculated.
         note: overrides to functionality of both `cross_validation()` and `performance_metrics()`
           within Prophet's `diagnostics` module are handled here as kwargs.
+        :param metrics: Specific subset list of metrics to calculate and return.
+                        note: metrics supplied that are not a member of:
+                        `["mse", "rmse", "mae", "mape", "mdape", "smape", "coverage"]` will
+                        raise a Diviner Exception.
+                        note: The `coverage` metric will be removed if error estiamtes are not
+                        configured to be calculated as part of the Prophet `.fit()` method by
+                        setting `uncertainty_samples=0` within the GroupedProphet `.fit()` method.
         :param kwargs: cross validation overrides to Prophet's
                       `prophet.diagnostics.cross_validation()` and
                       `prophet.diagnostics.performance_metrics()` functions
@@ -173,7 +180,7 @@ class GroupedProphet(GroupedForecaster):
                  to test as columns with each row representing a group.
         """
         scores = {
-            group_key: cross_validate_model(model, **kwargs)
+            group_key: cross_validate_model(model, metrics, **kwargs)
             for group_key, model in self.model.items()
         }
 

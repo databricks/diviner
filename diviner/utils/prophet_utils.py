@@ -1,6 +1,7 @@
 from diviner.config.grouped_prophet.prophet_config import (
     get_base_metrics,
     get_extract_params,
+_validate_user_metrics
 )
 from prophet.diagnostics import cross_validation, performance_metrics
 import numpy as np
@@ -53,6 +54,9 @@ def cross_validate_model(model, metrics=None, **kwargs):
     initial, horizon, and period (optionally manual 'cutoffs' as well).
     :param model: Prophet model instance that has been fit
     :param metrics: List of metrics to evaluate and return for the provided model
+                    note: Metrics not a member of:
+                    `["mse", "rmse", "mae", "mape", "mdape", "smape", "coverage"]`
+                    will raise a DivinerException.
     :param kwargs: cross validation overrides for Prophet's implementation of backtesting.
                    note: two of the potential kwargs entries that are contained here can be for the
                    *args defaulted values within Prophet's `performance_metrics` function:
@@ -61,9 +65,11 @@ def cross_validate_model(model, metrics=None, **kwargs):
                    within kwargs, they will retain their defaulted values from within Prophet.
     :return: Dict[str, float] of each metric and its averaged value over each time horizon.
     """
-    # If uncertainty samples is set to 0, calculating 'coverage' parameter is useless.
-    base_metrics = get_base_metrics(uncertainty_samples=model.uncertainty_samples)
-    user_metrics = metrics if metrics else base_metrics
+    # Instead of populating 'NaN' for invalid metrics, raise an Exception.
+    if metrics:
+        cv_metrics = _validate_user_metrics(metrics, model.uncertainty_samples)
+    else:
+        cv_metrics = get_base_metrics(uncertainty_samples=model.uncertainty_samples)
 
     # extract `performance_metrics` *args if present
     performance_metrics_defaults = signature(performance_metrics).parameters
@@ -76,12 +82,12 @@ def cross_validate_model(model, metrics=None, **kwargs):
         model=model, disable_tqdm=kwargs.pop("disable_tqdm", True), **kwargs
     )
     horizon_metrics = performance_metrics(
-        model_cv, metrics=user_metrics, rolling_window=rolling_window, monthly=monthly
+        model_cv, metrics=cv_metrics, rolling_window=rolling_window, monthly=monthly
     )
 
     return {
         metric: horizon_metrics[metric].mean() if metric in horizon_metrics else np.nan
-        for metric in user_metrics
+        for metric in cv_metrics
     }
 
 
