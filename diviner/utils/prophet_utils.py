@@ -5,6 +5,7 @@ from diviner.config.grouped_prophet.prophet_config import (
 from prophet.diagnostics import cross_validation, performance_metrics
 import numpy as np
 import pandas as pd
+from inspect import signature
 
 
 def _generate_future_df(model, horizon, frequency):
@@ -44,22 +45,39 @@ def generate_future_dfs(grouped_model, horizon: int, frequency: str):
     return list(df_collection.items())
 
 
-def cross_validate_model(model, **kwargs):
+def cross_validate_model(model, metrics=None, **kwargs):
     """
-    Wrapper around Prophet's cross_validation function within the `prophet.diagnostics` module.
+    Wrapper around Prophet's `cross_validation` and `performance_metrics` functions within
+    the `prophet.diagnostics` module.
     Provides backtesting metric evaluation based on the configurations specified for
     initial, horizon, and period (optionally manual 'cutoffs' as well).
     :param model: Prophet model instance that has been fit
-    :param kwargs: cross validation overrides for Prophet's implementation of backtesting
-    :return: Dict[str, float] of each metric and its averaged (over each time horizon) value.
+    :param metrics: List of metrics to evaluate and return for the provided model
+    :param kwargs: cross validation overrides for Prophet's implementation of backtesting.
+                   note: two of the potential kwargs entries that are contained here can be for the
+                   *args defaulted values within Prophet's `performance_metrics` function:
+                   'rolling_window' and 'monthly' which specify how to roll up the
+                   'raw' data returned from the `cross_validation` function. If not specified
+                   within kwargs, they will retain their defaulted values from within Prophet.
+    :return: Dict[str, float] of each metric and its averaged value over each time horizon.
     """
     # If uncertainty samples is set to 0, calculating 'coverage' parameter is useless.
     base_metrics = get_base_metrics(uncertainty_samples=model.uncertainty_samples)
-    user_metrics = kwargs.pop("metrics", base_metrics)
+    user_metrics = metrics if metrics else base_metrics
+
+    # extract `performance_metrics` *args if present
+    performance_metrics_defaults = signature(performance_metrics).parameters
+    rolling_window = kwargs.pop(
+        "rolling_window", performance_metrics_defaults["rolling_window"].default
+    )
+    monthly = kwargs.pop("monthly", performance_metrics_defaults["monthly"].default)
+
     model_cv = cross_validation(
         model=model, disable_tqdm=kwargs.pop("disable_tqdm", True), **kwargs
     )
-    horizon_metrics = performance_metrics(model_cv, metrics=user_metrics)
+    horizon_metrics = performance_metrics(
+        model_cv, metrics=user_metrics, rolling_window=rolling_window, monthly=monthly
+    )
 
     return {
         metric: horizon_metrics[metric].mean() if metric in horizon_metrics else np.nan

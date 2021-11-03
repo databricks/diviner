@@ -32,8 +32,8 @@ def test_validate_keys_in_df():
     with pytest.raises(
         DivinerException,
         match=(
-            "Not all key grouping columns supplied: \['a', 'b', 'q'\] are present "
-            "in the submitted df: \['ds', 'y', 'a', 'b', 'c', 'z'\]"
+            "Not all key grouping columns supplied: \\['a', 'b', 'q'\\] are present "
+            "in the submitted df: \\['ds', 'y', 'a', 'b', 'c', 'z'\\]"
         ),
     ):
         validate_keys_in_df(df, invalid_group_keys)

@@ -42,11 +42,11 @@ class GroupedProphet(GroupedForecaster):
         :param kwargs: Prophet class configuration overrides
         """
         super().__init__()
-        self.kwargs = kwargs
+        self.prophet_init_kwargs = kwargs
 
     def _fit_prophet(self, group_key, df, **kwargs):
 
-        return {group_key: Prophet(**self.kwargs).fit(df, **kwargs)}
+        return {group_key: Prophet(**self.prophet_init_kwargs).fit(df, **kwargs)}
 
     @model_init_check
     def fit(self, df, group_key_columns, **kwargs):
@@ -65,8 +65,11 @@ class GroupedProphet(GroupedForecaster):
                    |'northeast'|1   |"2021-10-02"|1255.9|
 
         :param group_key_columns: The columns in the `df` argument that define, in aggregate, a
-                                  unique time series entry.
-        :param kwargs: overrides for PyStan configuration for fitting.
+                                  unique time series entry. For example, with the DataFrame
+                                  referenced in the `df` param, group_key_columns would be:
+                                  ['region', 'zone']
+        :param kwargs: overrides for underlying Prophet `.fit()` **kwargs (i.e., optimizer backend
+                       library configuration overrides)
         :return: object instance
         """
 
@@ -155,8 +158,17 @@ class GroupedProphet(GroupedForecaster):
         """
         Metric scoring method that will run backtesting cross validation scoring for each
         time series specified within the model after a `.fit()` has been performed.
+        Default metrics that will be returned:
+        `["mse", "rmse", "mae", "mape", "mdape", "smape", "coverage"]`
+        note: If the configuration overrides for the model during `fit()` set
+        `uncertainty_samples=0`, the metric `coverage` will be removed from metrics calculation,
+        saving a great deal of runtime overhead since the prediction errors (yhat_upper, yhat_lower)
+        will not be calculated.
+        note: overrides to functionality of both `cross_validation()` and `performance_metrics()`
+          within Prophet's `diagnostics` module are handled here as kwargs.
         :param kwargs: cross validation overrides to Prophet's
-                      `prophet.diagnostics.cross_validation()` method
+                      `prophet.diagnostics.cross_validation()` and
+                      `prophet.diagnostics.performance_metrics()` functions
         :return: A consolidated Pandas DataFrame containing the specified metrics
                  to test as columns with each row representing a group.
         """
