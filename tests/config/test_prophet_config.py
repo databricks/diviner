@@ -1,20 +1,22 @@
 from prophet import Prophet
-from diviner.config.grouped_prophet.prophet_config import get_extract_params, get_base_metrics
+from diviner.config.grouped_prophet.prophet_config import get_extract_params, get_base_metrics, _reconcile_metrics
 
 
 def test_base_cv_metrics_extract():
 
     init_prophet = Prophet()
 
-    metric_result_positive_uncertainty = get_base_metrics(getattr(init_prophet, "uncertainty_samples"))
+    base = get_base_metrics()
+    metric_result_positive_uncertainty = _reconcile_metrics(base, init_prophet.uncertainty_samples)
 
     assert "coverage" in metric_result_positive_uncertainty
 
     setattr(init_prophet, "uncertainty_samples", 0)
 
-    metric_result_no_uncertainty = get_base_metrics(getattr(init_prophet, "uncertainty_samples"))
+    metric_result_no_uncertainty = _reconcile_metrics(base, init_prophet.uncertainty_samples)
 
     assert "coverage" not in metric_result_no_uncertainty
+    assert "coverage" in base # validate immutability for iterable traversal purposes
 
 
 def test_param_extract():

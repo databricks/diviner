@@ -6,11 +6,9 @@ from diviner.exceptions import DivinerException
 SCORING_METRICS = ["mse", "rmse", "mae", "mape", "mdape", "smape", "coverage"]
 
 
-def get_base_metrics(uncertainty_samples):
-    metrics = deepcopy(SCORING_METRICS)
-    if uncertainty_samples == 0:
-        metrics.remove("coverage")
-    return metrics
+def get_base_metrics():
+
+    return deepcopy(SCORING_METRICS)
 
 
 def get_extract_params():
@@ -21,7 +19,14 @@ def get_extract_params():
     return prophet_signature
 
 
-def _validate_user_metrics(metrics, uncertainty_samples):
+def _reconcile_metrics(metrics, uncertainty_samples):
+    user_metrics = deepcopy(metrics)
+    if uncertainty_samples == 0 and "coverage" in user_metrics:
+        user_metrics.remove("coverage")
+    return user_metrics
+
+
+def _validate_user_metrics(metrics):
 
     if not set(metrics).issubset(set(SCORING_METRICS)):
         raise DivinerException(
@@ -29,7 +34,4 @@ def _validate_user_metrics(metrics, uncertainty_samples):
             f"invalid entries. Metrics must be part of: {SCORING_METRICS}"
         )
     else:
-        if uncertainty_samples == 0 and "coverage" in metrics:
-            metrics.remove("coverage")
         return metrics
-

@@ -154,7 +154,7 @@ class GroupedProphet(GroupedForecaster):
         return self._run_predictions(grouped_data)
 
     @fit_check
-    def cross_validation(self, metrics=None, **kwargs):
+    def cross_validation(self, horizon, metrics=None, **kwargs):
         """
         Metric scoring method that will run backtesting cross validation scoring for each
         time series specified within the model after a `.fit()` has been performed.
@@ -166,6 +166,9 @@ class GroupedProphet(GroupedForecaster):
         will not be calculated.
         note: overrides to functionality of both `cross_validation()` and `performance_metrics()`
           within Prophet's `diagnostics` module are handled here as kwargs.
+        :param horizon: String pd.Timedelta format that defines the length of forecasting values
+                        to generate in order to acquire error metrics.
+                        examples: '30 days', '1 year'
         :param metrics: Specific subset list of metrics to calculate and return.
                         note: metrics supplied that are not a member of:
                         `["mse", "rmse", "mae", "mape", "mdape", "smape", "coverage"]` will
@@ -180,7 +183,7 @@ class GroupedProphet(GroupedForecaster):
                  to test as columns with each row representing a group.
         """
         scores = {
-            group_key: cross_validate_model(model, metrics, **kwargs)
+            group_key: cross_validate_model(model, horizon, metrics, **kwargs)
             for group_key, model in self.model.items()
         }
 
@@ -221,7 +224,9 @@ class GroupedProphet(GroupedForecaster):
 
         :param horizon: The number of row events to forecast
         :param frequency: The frequency (periodicity) of Pandas date_range format
-                          (i.e., '4 hours', '3 days', '90 minutes')
+                          (i.e., 'D', 'M', 'Y')
+        note see for full listing of available strings:
+          https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
         :return: A consolidated (unioned) single DataFrame of all groups forecasts
         """
 

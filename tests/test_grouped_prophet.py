@@ -4,14 +4,14 @@ from prophet import Prophet
 from datetime import timedelta
 import os
 import shutil
-
+import pytest
 
 def _get_individual_model(model, index):
 
     _model_key = list(model.model.keys())[index]
     return model.model[_model_key]
 
-
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_prophet_default_fit():
 
     train = data_generator.generate_test_data(4, 2, 1000, "2020-01-01", 1)

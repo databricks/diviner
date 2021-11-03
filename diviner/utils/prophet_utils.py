@@ -1,7 +1,8 @@
 from diviner.config.grouped_prophet.prophet_config import (
     get_base_metrics,
     get_extract_params,
-_validate_user_metrics
+    _validate_user_metrics,
+    _reconcile_metrics,
 )
 from prophet.diagnostics import cross_validation, performance_metrics
 import numpy as np
@@ -46,13 +47,16 @@ def generate_future_dfs(grouped_model, horizon: int, frequency: str):
     return list(df_collection.items())
 
 
-def cross_validate_model(model, metrics=None, **kwargs):
+def cross_validate_model(model, horizon, metrics=None, **kwargs):
     """
     Wrapper around Prophet's `cross_validation` and `performance_metrics` functions within
     the `prophet.diagnostics` module.
     Provides backtesting metric evaluation based on the configurations specified for
     initial, horizon, and period (optionally manual 'cutoffs' as well).
     :param model: Prophet model instance that has been fit
+    :param horizon: String pd.Timedelta format that defines the length of forecasting values
+                    to generate in order to acquire error metrics.
+                    examples: '30 days', '1 year'
     :param metrics: List of metrics to evaluate and return for the provided model
                     note: Metrics not a member of:
                     `["mse", "rmse", "mae", "mape", "mdape", "smape", "coverage"]`
@@ -67,9 +71,12 @@ def cross_validate_model(model, metrics=None, **kwargs):
     """
     # Instead of populating 'NaN' for invalid metrics, raise an Exception.
     if metrics:
-        cv_metrics = _validate_user_metrics(metrics, model.uncertainty_samples)
+        cv_metrics = _validate_user_metrics(metrics)
     else:
-        cv_metrics = get_base_metrics(uncertainty_samples=model.uncertainty_samples)
+        cv_metrics = get_base_metrics()
+
+    # Remove 'coverage' if prediction errors are not calculated
+    cv_metrics = _reconcile_metrics(cv_metrics, model.uncertainty_samples)
 
     # extract `performance_metrics` *args if present
     performance_metrics_defaults = signature(performance_metrics).parameters
@@ -79,7 +86,7 @@ def cross_validate_model(model, metrics=None, **kwargs):
     monthly = kwargs.pop("monthly", performance_metrics_defaults["monthly"].default)
 
     model_cv = cross_validation(
-        model=model, disable_tqdm=kwargs.pop("disable_tqdm", True), **kwargs
+        model=model, horizon=horizon, disable_tqdm=kwargs.pop("disable_tqdm", True), **kwargs
     )
     horizon_metrics = performance_metrics(
         model_cv, metrics=cv_metrics, rolling_window=rolling_window, monthly=monthly
