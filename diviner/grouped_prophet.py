@@ -4,7 +4,7 @@ from prophet import Prophet
 
 from diviner.exceptions import DivinerException
 from diviner.model.base_model import GroupedForecaster
-from diviner.data.pandas_generator import PandasGroupGenerator
+from diviner.data.pandas_group_generator import PandasGroupGenerator
 from diviner.utils.prophet_utils import (
     generate_future_dfs,
     cross_validate_model,
@@ -42,11 +42,12 @@ class GroupedProphet(GroupedForecaster):
         :param kwargs: Prophet class configuration overrides
         """
         super().__init__()
-        self.kwargs = kwargs
+        self.prophet_init_kwargs = kwargs
+        self.master_key = "grouping_key"
 
     def _fit_prophet(self, group_key, df, **kwargs):
 
-        return {group_key: Prophet(**self.kwargs).fit(df, **kwargs)}
+        return {group_key: Prophet(**self.prophet_init_kwargs).fit(df, **kwargs)}
 
     @model_init_check
     def fit(self, df, group_key_columns, **kwargs):
@@ -65,8 +66,11 @@ class GroupedProphet(GroupedForecaster):
                    |'northeast'|1   |"2021-10-02"|1255.9|
 
         :param group_key_columns: The columns in the `df` argument that define, in aggregate, a
-                                  unique time series entry.
-        :param kwargs: overrides for PyStan configuration for fitting.
+                                  unique time series entry. For example, with the DataFrame
+                                  referenced in the `df` param, group_key_columns would be:
+                                  ('region', 'zone')
+        :param kwargs: overrides for underlying Prophet `.fit()` **kwargs (i.e., optimizer backend
+                       library configuration overrides)
         :return: object instance
         """
 
@@ -152,17 +156,36 @@ class GroupedProphet(GroupedForecaster):
         return self._run_predictions(grouped_data)
 
     @fit_check
-    def cross_validation(self, **kwargs):
+    def cross_validation(self, horizon, metrics=None, **kwargs):
         """
         Metric scoring method that will run backtesting cross validation scoring for each
         time series specified within the model after a `.fit()` has been performed.
+        Default metrics that will be returned:
+        `["mse", "rmse", "mae", "mape", "mdape", "smape", "coverage"]`
+        note: If the configuration overrides for the model during `fit()` set
+        `uncertainty_samples=0`, the metric `coverage` will be removed from metrics calculation,
+        saving a great deal of runtime overhead since the prediction errors (yhat_upper, yhat_lower)
+        will not be calculated.
+        note: overrides to functionality of both `cross_validation()` and `performance_metrics()`
+          within Prophet's `diagnostics` module are handled here as kwargs.
+        :param horizon: String pd.Timedelta format that defines the length of forecasting values
+                        to generate in order to acquire error metrics.
+                        examples: '30 days', '1 year'
+        :param metrics: Specific subset list of metrics to calculate and return.
+                        note: metrics supplied that are not a member of:
+                        `["mse", "rmse", "mae", "mape", "mdape", "smape", "coverage"]` will
+                        raise a Diviner Exception.
+                        note: The `coverage` metric will be removed if error estiamtes are not
+                        configured to be calculated as part of the Prophet `.fit()` method by
+                        setting `uncertainty_samples=0` within the GroupedProphet `.fit()` method.
         :param kwargs: cross validation overrides to Prophet's
-                      `prophet.diagnostics.cross_validation()` method
+                      `prophet.diagnostics.cross_validation()` and
+                      `prophet.diagnostics.performance_metrics()` functions
         :return: A consolidated Pandas DataFrame containing the specified metrics
                  to test as columns with each row representing a group.
         """
         scores = {
-            group_key: cross_validate_model(model, **kwargs)
+            group_key: cross_validate_model(model, horizon, metrics, **kwargs)
             for group_key, model in self.model.items()
         }
 
@@ -203,7 +226,9 @@ class GroupedProphet(GroupedForecaster):
 
         :param horizon: The number of row events to forecast
         :param frequency: The frequency (periodicity) of Pandas date_range format
-                          (i.e., '4 hours', '3 days', '90 minutes')
+                          (i.e., 'D', 'M', 'Y')
+        note see for full listing of available strings:
+          https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
         :return: A consolidated (unioned) single DataFrame of all groups forecasts
         """
 

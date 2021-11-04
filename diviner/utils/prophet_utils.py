@@ -1,10 +1,12 @@
 from diviner.config.grouped_prophet.prophet_config import (
-    get_base_metrics,
-    get_extract_params,
+    get_scoring_metrics,
+    _get_extract_params,
 )
+from diviner.config.grouped_prophet.utils import prophet_config_utils
 from prophet.diagnostics import cross_validation, performance_metrics
 import numpy as np
 import pandas as pd
+from inspect import signature
 
 
 def _generate_future_df(model, horizon, frequency):
@@ -44,26 +46,56 @@ def generate_future_dfs(grouped_model, horizon: int, frequency: str):
     return list(df_collection.items())
 
 
-def cross_validate_model(model, **kwargs):
+def cross_validate_model(model, horizon, metrics=None, **kwargs):
     """
-    Wrapper around Prophet's cross_validation function within the `prophet.diagnostics` module.
+    Wrapper around Prophet's `cross_validation` and `performance_metrics` functions within
+    the `prophet.diagnostics` module.
     Provides backtesting metric evaluation based on the configurations specified for
     initial, horizon, and period (optionally manual 'cutoffs' as well).
     :param model: Prophet model instance that has been fit
-    :param kwargs: cross validation overrides for Prophet's implementation of backtesting
-    :return: Dict[str, float] of each metric and its averaged (over each time horizon) value.
+    :param horizon: String pd.Timedelta format that defines the length of forecasting values
+                    to generate in order to acquire error metrics.
+                    examples: '30 days', '1 year'
+    :param metrics: List of metrics to evaluate and return for the provided model
+                    note: Metrics not a member of:
+                    `["mse", "rmse", "mae", "mape", "mdape", "smape", "coverage"]`
+                    will raise a DivinerException.
+    :param kwargs: cross validation overrides for Prophet's implementation of backtesting.
+                   note: two of the potential kwargs entries that are contained here can be for the
+                   *args defaulted values within Prophet's `performance_metrics` function:
+                   'rolling_window' and 'monthly' which specify how to roll up the
+                   'raw' data returned from the `cross_validation` function. If not specified
+                   within kwargs, they will retain their defaulted values from within Prophet.
+    :return: Dict[str, float] of each metric and its averaged value over each time horizon.
     """
-    # If uncertainty samples is set to 0, calculating 'coverage' parameter is useless.
-    base_metrics = get_base_metrics(uncertainty_samples=model.uncertainty_samples)
-    user_metrics = kwargs.pop("metrics", base_metrics)
-    model_cv = cross_validation(
-        model=model, disable_tqdm=kwargs.pop("disable_tqdm", True), **kwargs
+    # Instead of populating 'NaN' for invalid metrics, raise an Exception.
+    cv_metrics = get_scoring_metrics(metrics)
+
+    # Remove 'coverage' if prediction errors are not calculated
+    cv_metrics = prophet_config_utils._reconcile_metrics(
+        cv_metrics, model.uncertainty_samples
     )
-    horizon_metrics = performance_metrics(model_cv, metrics=user_metrics)
+
+    # extract `performance_metrics` *args if present
+    performance_metrics_defaults = signature(performance_metrics).parameters
+    rolling_window = kwargs.pop(
+        "rolling_window", performance_metrics_defaults["rolling_window"].default
+    )
+    monthly = kwargs.pop("monthly", performance_metrics_defaults["monthly"].default)
+
+    model_cv = cross_validation(
+        model=model,
+        horizon=horizon,
+        disable_tqdm=kwargs.pop("disable_tqdm", True),
+        **kwargs
+    )
+    horizon_metrics = performance_metrics(
+        model_cv, metrics=cv_metrics, rolling_window=rolling_window, monthly=monthly
+    )
 
     return {
         metric: horizon_metrics[metric].mean() if metric in horizon_metrics else np.nan
-        for metric in user_metrics
+        for metric in cv_metrics
     }
 
 
@@ -74,7 +106,7 @@ def extract_params(model):
     :return: Dict[str, any] of tunable parameters for a Prophet model
     """
 
-    return {param: getattr(model, param) for param in get_extract_params()}
+    return {param: getattr(model, param) for param in _get_extract_params()}
 
 
 def create_reporting_df(extract_dict, master_key, group_key_columns):

@@ -20,7 +20,10 @@ setup(
     author="Databricks",
     description="Diviner: A Grouped Forecasting API",
     license="Apache2.0",
-    classfiers=["Intended Audience: Developers", "Programming Language :: Python :: 3.6"],
+    classfiers=[
+        "Intended Audience: Developers",
+        "Programming Language :: Python :: 3.6",
+    ],
     keywords="ml ai databricks",
     python_requires=">=3.6",
 )

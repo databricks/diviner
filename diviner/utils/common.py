@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import Tuple, Dict, List
 from diviner.exceptions import DivinerException
 import pandas as pd
 
@@ -17,7 +17,9 @@ def restructure_fit_payload(train_results: List[Dict[str, any]]) -> Dict[str, an
     }
 
 
-def _reorder_cols(df, key_columns: List[str], master_grouping_key: str) -> pd.DataFrame:
+def _reorder_cols(
+    df, key_columns: Tuple[str], master_grouping_key: str
+) -> pd.DataFrame:
     """
     Helper function for creating a user-friendly schema structure for the output prediction
     dataframe that mirrors what would be expected (grouping columns preceding data)
@@ -90,7 +92,7 @@ def model_init_check(fn):
     return _model_init_check
 
 
-def validate_keys_in_df(df, key_columns: List[str]):
+def validate_keys_in_df(df, key_columns: Tuple):
     """
     Validation function for ensuring that the grouping keys that are passed in to the
     class constructor are present in the passed-in dataframe
@@ -100,7 +102,7 @@ def validate_keys_in_df(df, key_columns: List[str]):
     """
 
     columns_list = list(df.columns)
-    if not all(col in columns_list for col in key_columns):
+    if not set(key_columns).issubset(set(columns_list)):
         raise DivinerException(
             f"Not all key grouping columns supplied: {key_columns} are present "
             f"in the submitted df: {columns_list}"

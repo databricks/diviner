@@ -1,2 +1,2 @@
-# diviner
-Grouped time series forecasting engine
+# Diviner: Grouped Timeseries Forecasting for scale
+
