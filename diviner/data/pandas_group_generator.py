@@ -24,6 +24,7 @@ class PandasGroupGenerator(BaseGroupGenerator):
         of the form (master_grouping_key, <series DataFrame>) which is used for iterating over
         to generate the individualized forecasting models for each master key group.
     """
+
     def __init__(self, group_key_columns: Tuple):
         """
         :param group_key_columns: Grouping columns that a combination of which designates a

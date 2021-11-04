@@ -63,6 +63,3 @@ def _get_extract_params():
     prophet_signature.remove("changepoints")
 
     return prophet_signature
-
-
-

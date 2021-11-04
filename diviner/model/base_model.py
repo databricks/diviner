@@ -3,7 +3,6 @@ from collections import defaultdict
 from typing import Tuple
 
 
-
 class GroupedForecaster(abc.ABC):
     """
     Base class exposing consistent public methods for any plugin grouped forecasting API.

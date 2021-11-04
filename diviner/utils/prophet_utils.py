@@ -1,6 +1,6 @@
 from diviner.config.grouped_prophet.prophet_config import (
     get_scoring_metrics,
-    _get_extract_params
+    _get_extract_params,
 )
 from diviner.config.grouped_prophet.utils import prophet_config_utils
 from prophet.diagnostics import cross_validation, performance_metrics
@@ -72,7 +72,9 @@ def cross_validate_model(model, horizon, metrics=None, **kwargs):
     cv_metrics = get_scoring_metrics(metrics)
 
     # Remove 'coverage' if prediction errors are not calculated
-    cv_metrics = prophet_config_utils._reconcile_metrics(cv_metrics, model.uncertainty_samples)
+    cv_metrics = prophet_config_utils._reconcile_metrics(
+        cv_metrics, model.uncertainty_samples
+    )
 
     # extract `performance_metrics` *args if present
     performance_metrics_defaults = signature(performance_metrics).parameters
@@ -82,7 +84,10 @@ def cross_validate_model(model, horizon, metrics=None, **kwargs):
     monthly = kwargs.pop("monthly", performance_metrics_defaults["monthly"].default)
 
     model_cv = cross_validation(
-        model=model, horizon=horizon, disable_tqdm=kwargs.pop("disable_tqdm", True), **kwargs
+        model=model,
+        horizon=horizon,
+        disable_tqdm=kwargs.pop("disable_tqdm", True),
+        **kwargs
     )
     horizon_metrics = performance_metrics(
         model_cv, metrics=cv_metrics, rolling_window=rolling_window, monthly=monthly

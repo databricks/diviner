@@ -17,7 +17,9 @@ def restructure_fit_payload(train_results: List[Dict[str, any]]) -> Dict[str, an
     }
 
 
-def _reorder_cols(df, key_columns: Tuple[str], master_grouping_key: str) -> pd.DataFrame:
+def _reorder_cols(
+    df, key_columns: Tuple[str], master_grouping_key: str
+) -> pd.DataFrame:
     """
     Helper function for creating a user-friendly schema structure for the output prediction
     dataframe that mirrors what would be expected (grouping columns preceding data)

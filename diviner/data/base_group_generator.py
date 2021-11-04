@@ -8,6 +8,7 @@ class BaseGroupGenerator(abc.ABC):
     Abstract class for defining the basic elements of performing a group processing collection
     generation operation.
     """
+
     def __init__(self, group_key_columns: Tuple):
         """
         Grouping key columns must be defined to serve as the basis for constructing a 'meta column'
@@ -17,8 +18,10 @@ class BaseGroupGenerator(abc.ABC):
                                   time series.
         """
         if not group_key_columns or len(group_key_columns) == 0:
-            raise DivinerException("Argument 'group_key_columns' tuple must contain at "
-                                   "least one string entry.")
+            raise DivinerException(
+                "Argument 'group_key_columns' tuple must contain at "
+                "least one string entry."
+            )
         else:
             self.group_key_columns = group_key_columns
         self.group_key_columns = group_key_columns
