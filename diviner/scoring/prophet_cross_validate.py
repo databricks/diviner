@@ -1,9 +1,6 @@
 from prophet.diagnostics import cross_validation, performance_metrics
-from diviner.config.grouped_prophet.prophet_config import (
-    _validate_user_metrics,
-    get_base_metrics,
-    _reconcile_metrics,
-)
+from diviner.config.grouped_prophet.prophet_config import get_scoring_metrics
+from diviner.config.grouped_prophet.utils import prophet_config_utils
 
 
 def group_cross_validation(grouped_model, **kwargs):
@@ -52,17 +49,16 @@ def group_performance_metrics(cv_results, grouped_model, metrics=None, **kwargs)
     :return: Dictionary of {group_key: performance metrics per window Pandas DataFrame}
     """
 
-    if metrics:
-        cv_metrics = _validate_user_metrics(metrics)
-    else:
-        cv_metrics = get_base_metrics()
+    cv_metrics = get_scoring_metrics(metrics)
 
     grouped_metrics = {}
 
     for group_key, model in grouped_model.model.items():
 
         cv_df = cv_results[group_key]
-        model_metrics = _reconcile_metrics(cv_metrics, model.uncertainty_samples)
+        model_metrics = prophet_config_utils._reconcile_metrics(
+            cv_metrics, model.uncertainty_samples
+        )
 
         grouped_metrics[group_key] = _single_model_performance_evaluation(
             cv_df, model_metrics, **kwargs

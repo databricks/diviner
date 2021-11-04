@@ -4,7 +4,7 @@ from prophet import Prophet
 
 from diviner.exceptions import DivinerException
 from diviner.model.base_model import GroupedForecaster
-from diviner.data.pandas_generator import PandasGroupGenerator
+from diviner.data.pandas_group_generator import PandasGroupGenerator
 from diviner.utils.prophet_utils import (
     generate_future_dfs,
     cross_validate_model,
@@ -43,6 +43,7 @@ class GroupedProphet(GroupedForecaster):
         """
         super().__init__()
         self.prophet_init_kwargs = kwargs
+        self.master_key = "grouping_key"
 
     def _fit_prophet(self, group_key, df, **kwargs):
 
@@ -67,7 +68,7 @@ class GroupedProphet(GroupedForecaster):
         :param group_key_columns: The columns in the `df` argument that define, in aggregate, a
                                   unique time series entry. For example, with the DataFrame
                                   referenced in the `df` param, group_key_columns would be:
-                                  ['region', 'zone']
+                                  ('region', 'zone')
         :param kwargs: overrides for underlying Prophet `.fit()` **kwargs (i.e., optimizer backend
                        library configuration overrides)
         :return: object instance

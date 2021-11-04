@@ -1,9 +1,8 @@
 from diviner.config.grouped_prophet.prophet_config import (
-    get_base_metrics,
-    get_extract_params,
-    _validate_user_metrics,
-    _reconcile_metrics,
+    get_scoring_metrics,
+    _get_extract_params
 )
+from diviner.config.grouped_prophet.utils import prophet_config_utils
 from prophet.diagnostics import cross_validation, performance_metrics
 import numpy as np
 import pandas as pd
@@ -70,13 +69,10 @@ def cross_validate_model(model, horizon, metrics=None, **kwargs):
     :return: Dict[str, float] of each metric and its averaged value over each time horizon.
     """
     # Instead of populating 'NaN' for invalid metrics, raise an Exception.
-    if metrics:
-        cv_metrics = _validate_user_metrics(metrics)
-    else:
-        cv_metrics = get_base_metrics()
+    cv_metrics = get_scoring_metrics(metrics)
 
     # Remove 'coverage' if prediction errors are not calculated
-    cv_metrics = _reconcile_metrics(cv_metrics, model.uncertainty_samples)
+    cv_metrics = prophet_config_utils._reconcile_metrics(cv_metrics, model.uncertainty_samples)
 
     # extract `performance_metrics` *args if present
     performance_metrics_defaults = signature(performance_metrics).parameters
@@ -105,7 +101,7 @@ def extract_params(model):
     :return: Dict[str, any] of tunable parameters for a Prophet model
     """
 
-    return {param: getattr(model, param) for param in get_extract_params()}
+    return {param: getattr(model, param) for param in _get_extract_params()}
 
 
 def create_reporting_df(extract_dict, master_key, group_key_columns):
