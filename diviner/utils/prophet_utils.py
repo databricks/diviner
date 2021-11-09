@@ -109,20 +109,4 @@ def extract_params(model):
     return {param: getattr(model, param) for param in _get_extract_params()}
 
 
-def create_reporting_df(extract_dict, master_key, group_key_columns):
-    """
-    Structural consolidation extract for the GroupedProphet model to generate an MLflow
-    artifact-compatible representation of each of the group's model attributes (metrics or
-    params) for a single run.
-    :param extract_dict: Extracted attributes from a Prophet model
-    :param master_key: The master grouping key column name
-    :param group_key_columns: The names of the grouping key columns used to train
-                              and instance of GroupedProphet model
-    :return: A Pandas DataFrame containing the attributes, grouping keys, and master grouping key
-             as columns with a row for each unique group's model.
-    """
-    base_df = pd.DataFrame.from_dict(extract_dict).T.sort_index(inplace=False)
-    base_df[master_key] = base_df.index.to_numpy()
-    base_df.index.names = group_key_columns
-    extracted_df = base_df.reset_index(inplace=False)
-    return extracted_df
+

@@ -8,7 +8,6 @@ from diviner.data.pandas_group_generator import PandasGroupGenerator
 from diviner.utils.prophet_utils import (
     generate_future_dfs,
     cross_validate_model,
-    create_reporting_df,
     extract_params,
 )
 from diviner.utils.common import (
@@ -17,6 +16,7 @@ from diviner.utils.common import (
     model_init_check,
     validate_keys_in_df,
     restructure_predictions,
+    create_reporting_df,
 )
 from diviner.serialize.prophet_serializer import (
     grouped_model_from_json,
