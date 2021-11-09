@@ -1,5 +1,5 @@
 from diviner.data.base_group_generator import BaseGroupGenerator
-from diviner.utils.common import validate_keys_in_df
+from diviner.utils.common import _validate_keys_in_df
 import pandas as pd
 from typing import Tuple
 
@@ -30,6 +30,7 @@ class PandasGroupGenerator(BaseGroupGenerator):
         :param group_key_columns: Grouping columns that a combination of which designates a
                                   combination of 'ds' and 'y' that represent a distinct series
         """
+        self.group_key_columns = group_key_columns
         super().__init__(group_key_columns)
 
     def _create_master_key_column(self, df) -> pd.DataFrame:
@@ -58,12 +59,14 @@ class PandasGroupGenerator(BaseGroupGenerator):
                  that contains the group definitions per row of the DataFrame.
         """
 
-        validate_keys_in_df(df, self.group_key_columns)
+        _validate_keys_in_df(df, self.group_key_columns)
 
         master_group_df = df.copy()
         master_group_df[self.master_group_key] = master_group_df[
             [*self.group_key_columns]
-        ].apply(lambda column: tuple(column), axis=1)
+        ].apply(
+            lambda column: tuple(column), axis=1
+        )  # pylint: disable=unnecessary-lambda
         return master_group_df
 
     def generate_processing_groups(self, df):

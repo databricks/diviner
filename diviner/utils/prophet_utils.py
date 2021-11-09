@@ -1,10 +1,6 @@
-from diviner.config.grouped_prophet.prophet_config import (
-    get_scoring_metrics,
-    _get_extract_params,
-)
+from diviner.config.grouped_prophet.prophet_config import _get_extract_params
 from diviner.config.grouped_prophet.utils import prophet_config_utils
 from prophet.diagnostics import cross_validation, performance_metrics
-import numpy as np
 import pandas as pd
 from inspect import signature
 
@@ -14,6 +10,7 @@ def _generate_future_df(model, horizon, frequency):
     Internal helper wrapper around the Prophet internal make_future_dataframe class method
     that will generate a series of rows of future datatime entries based on where the
     training dataset time horizon left off.
+
     :param model: A fit Prophet model
     :param horizon: integer of units of datetime period to generate
     :param frequency: the datetime period type to generate in Pandas `date_range` offset
@@ -31,6 +28,7 @@ def generate_future_dfs(grouped_model, horizon: int, frequency: str):
     """
     Utility function for continuing from where the training dataframe left off and generating
     `horizon` number of `period_type` row entries per group that were in the training data set.
+
     :param grouped_model: A fit grouped Prophet model
     :param horizon: integer of units of datetime period to generate
     :param frequency: the datetime period type to generate in Pandas `date_range` offset
@@ -52,14 +50,14 @@ def cross_validate_model(model, horizon, metrics=None, **kwargs):
     the `prophet.diagnostics` module.
     Provides backtesting metric evaluation based on the configurations specified for
     initial, horizon, and period (optionally manual 'cutoffs' as well).
+
     :param model: Prophet model instance that has been fit
     :param horizon: String pd.Timedelta format that defines the length of forecasting values
                     to generate in order to acquire error metrics.
                     examples: '30 days', '1 year'
     :param metrics: List of metrics to evaluate and return for the provided model
-                    note: Metrics not a member of:
-                    `["mse", "rmse", "mae", "mape", "mdape", "smape", "coverage"]`
-                    will raise a DivinerException.
+                    note: see supported metrics in Prophet documentation:
+                    https://facebook.github.io/prophet/docs/diagnostics.html#cross-validation
     :param kwargs: cross validation overrides for Prophet's implementation of backtesting.
                    note: two of the potential kwargs entries that are contained here can be for the
                    *args defaulted values within Prophet's `performance_metrics` function:
@@ -68,13 +66,11 @@ def cross_validate_model(model, horizon, metrics=None, **kwargs):
                    within kwargs, they will retain their defaulted values from within Prophet.
     :return: Dict[str, float] of each metric and its averaged value over each time horizon.
     """
-    # Instead of populating 'NaN' for invalid metrics, raise an Exception.
-    cv_metrics = get_scoring_metrics(metrics)
 
-    # Remove 'coverage' if prediction errors are not calculated
-    cv_metrics = prophet_config_utils._reconcile_metrics(
-        cv_metrics, model.uncertainty_samples
-    )
+    if metrics:
+        metrics = prophet_config_utils._reconcile_metrics(
+            metrics, model.uncertainty_samples
+        )
 
     # extract `performance_metrics` *args if present
     performance_metrics_defaults = signature(performance_metrics).parameters
@@ -90,18 +86,20 @@ def cross_validate_model(model, horizon, metrics=None, **kwargs):
         **kwargs
     )
     horizon_metrics = performance_metrics(
-        model_cv, metrics=cv_metrics, rolling_window=rolling_window, monthly=monthly
+        model_cv, metrics=metrics, rolling_window=rolling_window, monthly=monthly
     )
 
     return {
-        metric: horizon_metrics[metric].mean() if metric in horizon_metrics else np.nan
-        for metric in cv_metrics
+        metric: horizon_metrics[metric].mean()
+        for metric in list(horizon_metrics.columns)
+        if metric != "horizon"
     }
 
 
-def extract_params(model):
+def _extract_params(model):
     """
     Helper function for retrieving the model parameters from a single Prophet model.
+
     :param model: A trained (fit) Prophet model instance
     :return: Dict[str, any] of tunable parameters for a Prophet model
     """
@@ -109,11 +107,12 @@ def extract_params(model):
     return {param: getattr(model, param) for param in _get_extract_params()}
 
 
-def create_reporting_df(extract_dict, master_key, group_key_columns):
+def _create_reporting_df(extract_dict, master_key, group_key_columns):
     """
     Structural consolidation extract for the GroupedProphet model to generate an MLflow
     artifact-compatible representation of each of the group's model attributes (metrics or
     params) for a single run.
+
     :param extract_dict: Extracted attributes from a Prophet model
     :param master_key: The master grouping key column name
     :param group_key_columns: The names of the grouping key columns used to train

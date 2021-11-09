@@ -1,5 +1,5 @@
 from tests import data_generator
-from diviner.grouped_prophet import GroupedProphet
+from diviner import GroupedProphet
 from prophet import Prophet
 from datetime import timedelta
 import os

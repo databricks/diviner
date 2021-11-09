@@ -1,3 +1,7 @@
+"""
+This Abstract Base Class defines the contract for implementing a specific forecasting library's
+grouped modeling application.
+"""
 import abc
 from collections import defaultdict
 from typing import Tuple
@@ -38,7 +42,6 @@ class GroupedForecaster(abc.ABC):
                        library used as a model for each group.
         :return: Object instance
         """
-        pass
 
     @abc.abstractmethod
     def predict(self, df):
@@ -47,12 +50,12 @@ class GroupedForecaster(abc.ABC):
         This signature requires a DataFrame of the same structure as that used in `.fit()`,
         e.g., a fully normalized structure consisting of the grouping key columns and datetime
         column of the future datetime events to infer predictions for.
+
         :param df: A DataFrame containing grouping key columns that resolve to values that
                    were present in the `.fit()` DataFrame.
         :return: A consolidated DataFrame of the union of each model's predictions per each
                  grouping key present in the `df` DataFrame.
         """
-        pass
 
     @abc.abstractmethod
     def forecast(self, horizon: int, frequency: str):
@@ -62,22 +65,22 @@ class GroupedForecaster(abc.ABC):
         a specific prediction DataFrame, but rather to automatically generate the required
         data from the attributes of the model's training (essentially to 'start predicting
         where the training data left off'.
+
         :param horizon: int number of future units per group to generate predictions for
         :param frequency: The frequency of the horizon in Pandas time_delta format (e.g.,
                'D' for days, 'M' for month)
         :return: A consolidated DataFrame of the union of each model's predictions for the
                  horizon number of units of frequency.
         """
-        pass
 
     @abc.abstractmethod
     def save(self, path: str):
         """
         Model serialization method, converting the model instance to JSON to be stored on disk.
+
         :param path: file system path to write the serialized model instance to.
         :return: None
         """
-        pass
 
     @abc.abstractmethod
     def load(self, path: str):
@@ -85,8 +88,8 @@ class GroupedForecaster(abc.ABC):
         Deserialization method for reading the JSON representation of a model instance of this
         type and initializing an instance of the sub class with the attributes stored during
         a `save` method call.
+
         :param path: The path on the file system that the serialized model is located at.
         :return: An instance of the model, attributes set according to what was in the
-                 serialized state of the artifact.
+                 serialized state of the model.
         """
-        pass

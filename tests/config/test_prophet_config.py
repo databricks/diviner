@@ -1,8 +1,5 @@
 from prophet import Prophet
-from diviner.config.grouped_prophet.prophet_config import (
-    get_scoring_metrics,
-    _get_extract_params,
-)
+from diviner.config.grouped_prophet.prophet_config import _get_extract_params
 from diviner.config.grouped_prophet.utils import prophet_config_utils
 
 
@@ -10,7 +7,7 @@ def test_base_cv_metrics_extract():
 
     init_prophet = Prophet()
 
-    base = get_scoring_metrics()
+    base = ["mse", "rmse", "sse", "mae", "coverage"]
     metric_result_positive_uncertainty = prophet_config_utils._reconcile_metrics(
         base, init_prophet.uncertainty_samples
     )

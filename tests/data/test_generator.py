@@ -33,8 +33,10 @@ def test_pandas_group_data_creation():
     group_gen = PandasGroupGenerator(grouping_keys).generate_processing_groups(data)
 
     updated = data.copy()
+    # disable linting because of a pandas tuple implementation bug:
+    #   https://github.com/PyCQA/pylint/issues/1709
     updated["grouping_key"] = updated[[*grouping_keys]].apply(
-        lambda x: tuple(x), axis=1
+        lambda x: tuple(x), axis=1  # pylint: disable=unnecessary-lambda
     )
     raw_tuple_keys = set(updated["grouping_key"])
 
