@@ -2,6 +2,7 @@ from typing import Tuple, Dict, List
 from diviner.exceptions import DivinerException
 import pandas as pd
 from collections import namedtuple
+from diviner.config.constants import PREDICT_END_COL, PREDICT_START_COL
 
 
 def restructure_fit_payload(train_results: List[Dict[str, any]]) -> Dict[str, any]:
@@ -110,6 +111,18 @@ def validate_keys_in_df(df, key_columns: Tuple):
         )
 
 
+def validate_prediction_config_df(df, key_columns: Tuple):
+
+    validate_keys_in_df(df, key_columns)
+    columns_set = set(df.columns)
+    validation = {PREDICT_START_COL, PREDICT_END_COL}
+    if not validation.issubset(columns_set):
+        raise DivinerException(
+            f"Prediction configuration DataFrame columns: `{columns_set}` "
+            f"do not contain the required columns: `{validation}`"
+        )
+
+
 def create_reporting_df(extract_dict, master_key, group_key_columns):
     """
     Structural consolidation extract for a grouped model to generate an MLflow
@@ -164,7 +177,9 @@ def generate_forecast_horizon_series(
         generated_series = pd.date_range(
             start=start_datetime, periods=horizon, freq=frequency
         )
-        forecast_series[group] = TimeBoundaries(generated_series[0], generated_series[-1])
+        forecast_series[group] = TimeBoundaries(
+            generated_series[0], generated_series[-1]
+        )
     return forecast_series
 
 
@@ -180,7 +195,7 @@ def convert_forecast_horizon_series_to_df(forecast_series, group_key_columns):
         row = {}
         for index, column in enumerate(group_key_columns):
             row[column] = key[index]
-        row['start'] = value.start
-        row['end'] = value.end
+        row["start"] = value.start
+        row["end"] = value.end
         collection.append(row)
     return pd.DataFrame.from_records(collection)

@@ -1,14 +1,31 @@
+import pandas as pd
+
 from tests import data_generator
 from diviner.grouped_statsmodels import GroupedStatsmodels
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 import pytest
 import warnings
 
+
 def _get_individual_model(model, index):
     #  TODO: abstract this into a test helper module
 
     _model_key = list(model.model.keys())[index]
     return model.model[_model_key]
+
+
+def assemble_prediction_df(train_data, start, end):
+    grouped = train_data.df.groupby(train_data.key_columns)
+    groups = set(grouped.groups.keys())
+    prediction_configuration = []
+    for keys in groups:
+        row = {}
+        for index, col in enumerate(train_data.key_columns):
+            row[col] = keys[index]
+        row["start"] = start
+        row["end"] = end
+        prediction_configuration.append(row)
+    return pd.DataFrame.from_records(prediction_configuration)
 
 
 def test_simple_arima_fit():
@@ -95,13 +112,17 @@ def test_holt_model_fit_and_metrics_gathering():
     train = data_generator.generate_test_data(3, 6, 2000, "2020-01-01", 1)
 
     warnings.simplefilter("always")
-    model = GroupedStatsmodels(
-        model_type="holt", endog_column="y", time_col="ds"
-    ).fit(train.df, train.key_columns, damped_trend=True,
-          initialization_method="known", initial_level=0.6, initial_trend=150.0)
+    model = GroupedStatsmodels(model_type="holt", endog_column="y", time_col="ds").fit(
+        train.df,
+        train.key_columns,
+        damped_trend=True,
+        initialization_method="known",
+        initial_level=0.6,
+        initial_trend=150.0,
+    )
 
     with warnings.catch_warnings(record=True) as w:
-        scores = model.score_model(metrics=['mse', 'sse', 'aic'], warning=True)
+        scores = model.score_model(metrics=["mse", "sse", "aic"], warning=True)
 
         assert len(w) == 6
         assert issubclass(w[-1].category, RuntimeWarning)
@@ -109,7 +130,9 @@ def test_holt_model_fit_and_metrics_gathering():
         assert {"sse", "aic"}.issubset(set(scores.columns))
 
     with warnings.catch_warnings(record=True) as w2:
-        scores_warnings_to_logs = model.score_model(metrics=['mse', 'sse', 'aic'], warning=False)
+        scores_warnings_to_logs = model.score_model(
+            metrics=["mse", "sse", "aic"], warning=False
+        )
         assert not w2
         assert len(scores_warnings_to_logs) == 6
 
@@ -118,13 +141,25 @@ def test_holt_model_fit_and_grouped_forecast():
 
     train = data_generator.generate_test_data(3, 6, 2000, "2020-01-01", 1)
 
-    model = GroupedStatsmodels(
-        model_type="holt", endog_column="y", time_col="ds"
-    ).fit(train.df, train.key_columns, damped_trend=False)
+    model = GroupedStatsmodels(model_type="holt", endog_column="y", time_col="ds").fit(
+        train.df, train.key_columns, damped_trend=False
+    )
 
     forecast = model.forecast(3)
+    assert len(forecast) == 18
+    assert {row > 0 for row in forecast["forecast"]}
 
-    print(forecast)
 
-    # assert 1 == 0
-    #TODO: clean this up
+def test_autoreg_model_fit_and_predict():
+    group_count = 8
+    train = data_generator.generate_test_data(3, group_count, 2000, "2020-02-02", 1)
+    model = GroupedStatsmodels(
+        model_type="autoreg", endog_column="y", time_col="ds"
+    ).fit(train.df, train.key_columns, lags=12)
+
+    prediction_df = assemble_prediction_df(train, "2022-01-01", "2023-02-02")
+
+    prediction = model.predict(prediction_df)
+
+    assert len(prediction) == 398 * group_count
+    assert {row > 0 for row in prediction["forecast"]}

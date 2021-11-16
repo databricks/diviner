@@ -1,7 +1,7 @@
 import abc
 from collections import defaultdict
 from typing import Tuple
-
+from diviner.config.constants import MASTER_GROUP_KEY
 
 class GroupedForecaster(abc.ABC):
     """
@@ -19,7 +19,7 @@ class GroupedForecaster(abc.ABC):
     def __init__(self):
         self.group_key_columns = None
         self.model = defaultdict(dict)
-        self.master_key = None
+        self.master_key = MASTER_GROUP_KEY
 
     @abc.abstractmethod
     def fit(self, df, group_key_columns: Tuple[str], **kwargs):

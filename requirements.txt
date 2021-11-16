@@ -1,6 +1,7 @@
 numpy
 pandas
 prophet
+statsmodels
 
 #Required for testing
 pytest

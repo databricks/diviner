@@ -1,3 +1,5 @@
+import pandas as pd
+
 from diviner.model.base_model import GroupedForecaster
 from diviner.config.grouped_statsmodels.statsmodels_config import (
     get_statsmodels_model,
@@ -7,19 +9,26 @@ from diviner.data.pandas_group_generator import PandasGroupGenerator
 from diviner.data.utils.dataframe_utils import apply_datetime_index_to_groups
 from diviner.utils.common import (
     validate_keys_in_df,
+    validate_prediction_config_df,
     restructure_fit_payload,
     generate_forecast_horizon_series,
     convert_forecast_horizon_series_to_df,
-    restructure_predictions
+    restructure_predictions,
 )
 from diviner.scoring.statsmodels_scoring import extract_statsmodels_metrics
 from diviner.utils.common import create_reporting_df
 from diviner.utils.statsmodels_utils import _get_max_datetime_per_group
-import pandas as pd
+from diviner.config.constants import PREDICT_END_COL, PREDICT_START_COL
+
 
 class GroupedStatsmodels(GroupedForecaster):
     def __init__(
-        self, model_type: str, endog_column: str, time_col: str, exog_column=None
+        self,
+        model_type: str,
+        endog_column: str,
+        time_col: str,
+        exog_column=None,
+        predict_col="forecast",
     ):
         super().__init__()
         self.model_clazz = get_statsmodels_model(model_type)
@@ -27,6 +36,7 @@ class GroupedStatsmodels(GroupedForecaster):
         self.time_col = time_col
         self.exog_column = exog_column
         self.max_datetime_per_group = None
+        self.predict_col = predict_col
 
     def _fit_model(self, group_key, df, **kwargs):
 
@@ -66,28 +76,34 @@ class GroupedStatsmodels(GroupedForecaster):
 
         return self
 
+    def _predict_single_group(self, row_entry):
+        group_key = row_entry[self.master_key]
+        model = self.model[group_key]
+        start = row_entry[PREDICT_START_COL]
+        end = row_entry[PREDICT_END_COL]
+        prediction = pd.DataFrame(
+            model.predict(start=start, end=end), columns=[self.predict_col]
+        )
+        prediction.index.name = self.time_col
+        prediction = prediction.reset_index()
+        prediction[self.master_key] = prediction.apply(lambda x: group_key, 1)
+        return prediction
+
     def predict(self, df):
 
-        # TODO: clean this up and abstract it!!!!!
+        validate_prediction_config_df(df, self.group_key_columns)
 
-        validate_keys_in_df(df, self.group_key_columns)
+        processing_data = PandasGroupGenerator(
+            self.group_key_columns
+        )._create_master_key_column(df)
 
-        processing_data = PandasGroupGenerator(self.group_key_columns)._create_master_key_column(df)
-        prediction_collection = []
-        for idx, row in processing_data.iterrows():
-            group_key = row["grouping_key"]
-            group_model = self.model[group_key]
-            prediction = pd.DataFrame(group_model.predict(start=row['start'], end=row['end']), columns=['forecast'])
-            prediction.index.name = "ds"
-            prediction = prediction.reset_index()
-            prediction["grouping_key"] = prediction.apply(lambda x: group_key, 1)
-            prediction_collection.append(prediction)
+        prediction_collection = [
+            self._predict_single_group(row) for idx, row in processing_data.iterrows()
+        ]
 
-        output = pd.concat(prediction_collection).reset_index(drop=True)
-        output[self.group_key_columns] = pd.DataFrame(output["grouping_key"].tolist(), index=output.index)
-
-        return output
-
+        return restructure_predictions(
+            prediction_collection, self.group_key_columns, self.master_key
+        )
 
     def score_model(self, metrics=None, warning=False):
         """
