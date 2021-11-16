@@ -33,7 +33,7 @@ class PandasGroupGenerator(BaseGroupGenerator):
         self.group_key_columns = group_key_columns
         super().__init__(group_key_columns)
 
-    def _create_master_key_column(self, df) -> pd.DataFrame:
+    def _add_master_key_column(self, df) -> pd.DataFrame:
         """
         Method for creating the 'master_group_key' column that defines a unique group.
         The master_group_key column is generated from the concatenation (within a tuple) of the
@@ -103,7 +103,7 @@ class PandasGroupGenerator(BaseGroupGenerator):
                  coupled with their group identifier.
         """
 
-        master_key_generation = self._create_master_key_column(df)
+        master_key_generation = self._add_master_key_column(df)
 
         grouped_data = list(
             dict(tuple(master_key_generation.groupby(self.master_group_key))).items()

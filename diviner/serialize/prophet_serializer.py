@@ -11,7 +11,7 @@ from prophet.serialize import model_from_json, model_to_json
 GROUPED_MODEL_ATTRIBUTES = ["group_key_columns", "master_key"]
 
 
-def _grouped_model_serialize(grouped_model):
+def _grouped_model_to_dict(grouped_model):
 
     model_dict = {
         attr: getattr(grouped_model, attr) for attr in GROUPED_MODEL_ATTRIBUTES
@@ -31,11 +31,11 @@ def grouped_model_to_json(grouped_model):
     :return: serialized json string of the model's attributes
     """
 
-    model_dict = _grouped_model_serialize(grouped_model)
+    model_dict = _grouped_model_to_dict(grouped_model)
     return json.dumps(model_dict)
 
 
-def _grouped_model_deserialize(model_dict, module, clazz):
+def _grouped_model_from_dict(model_dict, module, clazz):
 
     init_attr = {key: model_dict[key] for key in GROUPED_MODEL_ATTRIBUTES}
     raw_model_payload = model_dict["model"]
@@ -66,4 +66,4 @@ def grouped_model_from_json(model_json, module, clazz):
 
     model_dict = json.loads(model_json)
 
-    return _grouped_model_deserialize(model_dict, module, clazz)
+    return _grouped_model_from_dict(model_dict, module, clazz)

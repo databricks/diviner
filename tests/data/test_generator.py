@@ -18,7 +18,7 @@ def generate_sample():
 def test_pandas_group_generator_master_key_creation():
     data = generate_sample()
     grouping_keys = ("a", "b")
-    master_key_add = PandasGroupGenerator(grouping_keys)._create_master_key_column(data)
+    master_key_add = PandasGroupGenerator(grouping_keys)._add_master_key_column(data)
 
     for i in range(len(master_key_add)):
         row = master_key_add.iloc[i]

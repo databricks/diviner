@@ -49,7 +49,8 @@ def cross_validate_model(model, horizon, metrics=None, **kwargs):
     Wrapper around Prophet's `cross_validation` and `performance_metrics` functions within
     the `prophet.diagnostics` module.
     Provides backtesting metric evaluation based on the configurations specified for
-    initial, horizon, and period (optionally manual 'cutoffs' as well).
+    initial, horizon, and period (optionally, a specified 'cutoffs' list of DateTime or string
+    date-time entries can override the backtesting split boundaries for training and validation).
 
     :param model: Prophet model instance that has been fit
     :param horizon: String pd.Timedelta format that defines the length of forecasting values
@@ -64,7 +65,7 @@ def cross_validate_model(model, horizon, metrics=None, **kwargs):
                    'rolling_window' and 'monthly' which specify how to roll up the
                    'raw' data returned from the `cross_validation` function. If not specified
                    within kwargs, they will retain their defaulted values from within Prophet.
-    :return: Dict[str, float] of each metric and its averaged value over each time horizon.
+    :return: Dict[str, float] of each metric and its value averaged over each time horizon.
     """
 
     if metrics:
@@ -74,10 +75,11 @@ def cross_validate_model(model, horizon, metrics=None, **kwargs):
 
     # extract `performance_metrics` *args if present
     performance_metrics_defaults = signature(performance_metrics).parameters
-    rolling_window = kwargs.pop(
-        "rolling_window", performance_metrics_defaults["rolling_window"].default
-    )
-    monthly = kwargs.pop("monthly", performance_metrics_defaults["monthly"].default)
+
+    performance_metrics_args = {}
+    for param, value in performance_metrics_defaults.items():
+        if value.default != value.empty and value.name != "metrics":
+            performance_metrics_args[param] = kwargs.pop(param, value.default)
 
     model_cv = cross_validation(
         model=model,
@@ -86,7 +88,7 @@ def cross_validate_model(model, horizon, metrics=None, **kwargs):
         **kwargs
     )
     horizon_metrics = performance_metrics(
-        model_cv, metrics=metrics, rolling_window=rolling_window, monthly=monthly
+        model_cv, metrics=metrics, **performance_metrics_args
     )
 
     return {

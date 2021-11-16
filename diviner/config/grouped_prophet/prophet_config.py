@@ -1,5 +1,6 @@
+import inspect
+
 from prophet import Prophet
-from inspect import signature
 
 
 def _get_extract_params():
@@ -12,7 +13,21 @@ def _get_extract_params():
 
     :return: A list of parameters to extract from a Prophet model for model tracking purposes.
     """
-    prophet_signature = list(signature(Prophet).parameters.keys())
-    prophet_signature.remove("changepoints")
+    blacklist = {
+        "changepoints",
+        "changepoints_t",
+        "seasonalities",
+        "stan_fit",
+        "stan_backend",
+        "params",
+        "history",
+        "history_dates",
+        "train_component_cols",
+    }
+    prophet_signature = [
+        attr
+        for attr, value in inspect.getmembers(Prophet())
+        if not callable(value) and not attr.startswith("__") and not attr in blacklist
+    ]
 
     return prophet_signature

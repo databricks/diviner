@@ -100,8 +100,19 @@ def test_prophet_cross_validation_extract_custom_scores():
         parallel=None,
         metrics=["rmse", "mape"],
         disable_tqdm=False,
+        monthly=True,
     )
 
     assert all(scores["rmse"] > 0)
     assert len(scores) == 2
     assert "coverage" not in scores
+
+
+def test_prophet_extract_params():
+    train = data_generator.generate_test_data(4, 6, 1000, "2020-01-01", 1)
+
+    model = GroupedProphet(uncertainty_samples=0).fit(train.df, train.key_columns)
+
+    params = model.extract_model_params()
+
+    assert len(params) == 6

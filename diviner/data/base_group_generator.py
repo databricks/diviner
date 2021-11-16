@@ -18,7 +18,38 @@ class BaseGroupGenerator(abc.ABC):
     def __init__(self, group_key_columns: Tuple):
         """
         Grouping key columns must be defined to serve in the construction of a consolidated
-        single unique key that is used to identify a particular unique time series.
+        single unique key that is used to identify a particular unique time series. The
+        unique combinations of these provided fields define and control the grouping of
+        univariate series data in order to train (fit) a particular model upon each of the
+        unique series (that are defined by the combination of the values within these supplied
+        columns).
+
+        The primary purpose of the children of this class is to generate a dictionary of:
+        {<group_key> : <DataFrame with unique univariate series>}.
+        The `group_key` element is constructed as a tuple of the values within the columns
+        specified by `group_key_columns` in this class constructor.
+
+        For example, with a normalized data set provided of:
+        |ds          |y       |group1    |group2    |
+        |2021-09-02  |11.1    |"a"       |"z"       |
+        |2021-09-03  |7.33    |"a"       |"z"       |
+        |2021-09-02  |31.1    |"b"       |"q"       |
+        |2021-09-03  |44.1    |"b"       |"q"       |
+
+        There are two separate univariate series: ("a", "z") and ("b", "q").
+        The group generator's function is to convert this 'unioned' DataFrame into the following:
+
+        { ("a", "z"):
+                        |ds          |y       |group1    |group2    |
+                        |2021-09-02  |11.1    |"a"       |"z"       |
+                        |2021-09-03  |7.33    |"a"       |"z"       |
+                        ,
+          ("b", "q"):
+                        |ds          |y       |group1    |group2    |
+                        |2021-09-02  |31.1    |"b"       |"q"       |
+                        |2021-09-03  |44.1    |"b"       |"q"       |
+        }
+        This grouping allows for a model to be fit to each of these series in isolation.
 
         :param group_key_columns: Tuple[str] of column names that determine which elements of the
                                   submitted DataFrame determine uniqueness of a particular

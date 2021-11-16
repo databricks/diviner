@@ -38,6 +38,9 @@ class GroupedProphet(GroupedForecaster):
 
     def __init__(self, **kwargs):
         """
+        For the Prophet initialization constructor, showing what arguments are available to be
+        passed in as `kwargs` in this class' constructor, see:
+        https://github.com/facebook/prophet/blob/main/python/prophet/forecaster.py
 
         :param kwargs: Prophet class configuration overrides
         """
@@ -57,6 +60,18 @@ class GroupedProphet(GroupedForecaster):
         When initiated, the input DataFrame (`df`) will be split into an iterable collection
         that represents a 'core' series to be fit against.
 
+        This `fit` method is a per-group wrapper around Prophet's `fit()` implementation. See:
+        https://facebook.github.io/prophet/docs/quick_start.html for information on the basic
+        API, as well as links to the source code that will demonstrate all of the options
+        available for overriding default functionality.
+        For a full description of all parameters that are available to the optimizer, run the
+        following in a shell:
+
+        ```
+        import pystan
+        help(pystan.StanModel.optimizing)
+        ```
+
         :param df: Normalized pandas DataFrame containing group_key_columns, a 'ds' column, and
                    a target 'y' column.
                    An example normalized data set to be used in this method:
@@ -68,11 +83,18 @@ class GroupedProphet(GroupedForecaster):
 
         :param group_key_columns: The columns in the `df` argument that define, in aggregate, a
                                   unique time series entry. For example, with the DataFrame
-                                  referenced in the `df` param, group_key_columns would be:
+                                  referenced in the `df` param, group_key_columns could be:
                                   ('region', 'zone')
+                                  Specifying an incomplete grouping collection, while valid
+                                  through this API (i.e., ('region')), can cause serious problems
+                                  with any forecast that is built with this API. Ensure that all
+                                  relevant keys are defined in the input `df` and declared in this
+                                  param to ensure that the appropriate per-univariate series data
+                                  is used to train each model.
         :param kwargs: overrides for underlying Prophet `.fit()` **kwargs (i.e., optimizer backend
-                       library configuration overrides)
-        :return: object instance
+                       library configuration overrides) for further information, see:
+                    https://facebook.github.io/prophet/docs/diagnostics.html#hyperparameter-tuning
+        :return: object instance (self) of GroupedProphet
         """
 
         self.group_key_columns = group_key_columns
@@ -168,6 +190,8 @@ class GroupedProphet(GroupedForecaster):
         will not be calculated.
         note: overrides to functionality of both `cross_validation()` and `performance_metrics()`
           within Prophet's `diagnostics` module are handled here as kwargs.
+        These arguments in this method's signature are directly passed, per model, to prophet's
+        `cross_validation` module.
 
         :param horizon: String pd.Timedelta format that defines the length of forecasting values
                         to generate in order to acquire error metrics.
@@ -231,7 +255,7 @@ class GroupedProphet(GroupedForecaster):
                           (i.e., 'D', 'M', 'Y')
         note see for full listing of available strings:
           https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
-        :return: A consolidated (unioned) single DataFrame of all groups forecasts
+        :return: A consolidated (unioned) single DataFrame of forecasts for all groups
         """
 
         grouped_data = generate_future_dfs(self.model, horizon, frequency)
@@ -241,8 +265,8 @@ class GroupedProphet(GroupedForecaster):
     @_fit_check
     def save(self, path: str):
         """
-        Serialization of the class instance of this model, provided that it has been fit.
-        This will store the model as a JSON string.
+        Serialize the model as a JSON string and write it to the provided path.
+        note: The model must be fit in order to save it.
 
         :param path: Location on the file system to store the model.
         :return: None
@@ -260,8 +284,10 @@ class GroupedProphet(GroupedForecaster):
 
     def load(self, path: str):
         """
-        Deserialization of the model from local JSON representation to an instance of
-        `GroupedProphet()` based on the attributes from a fit model.
+        Load the model from the specified path, deserializing it from its JSON string
+        representation and returning a GroupedProphet instance.
+        note: If a model has already been fit on this instance, calling `.load()` will replace
+        this instance's attributes with the loaded model's.
 
         :param path: File system path of a saved GroupedProphet model.
         :return: An instance of GroupedProphet with fit attributes applied.
