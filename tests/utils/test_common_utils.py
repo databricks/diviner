@@ -41,5 +41,3 @@ def test_validate_keys_in_df():
     assert validate_keys_in_df(df, valid_subset_group_keys) is None
     assert validate_keys_in_df(df, valid_group_keys) is None
 
-def test_predict_conf_df_validation():
-

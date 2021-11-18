@@ -1,4 +1,5 @@
 import pandas as pd
+import inspect
 
 from diviner.model.base_model import GroupedForecaster
 from diviner.config.grouped_statsmodels.statsmodels_config import (
@@ -17,22 +18,27 @@ from diviner.utils.common import (
 )
 from diviner.scoring.statsmodels_scoring import extract_statsmodels_metrics
 from diviner.utils.common import create_reporting_df
-from diviner.utils.statsmodels_utils import _get_max_datetime_per_group
+from diviner.utils.statsmodels_utils import (
+    _get_max_datetime_per_group,
+    _resolve_forecast_duration_var_model,
+)
 from diviner.config.constants import PREDICT_END_COL, PREDICT_START_COL
+from diviner.serialize.statsmodels_serializer import group_statsmodels_save, group_statsmodels_load
 
 
 class GroupedStatsmodels(GroupedForecaster):
     def __init__(
         self,
         model_type: str,
-        endog_column: str,
+        endog,
         time_col: str,
         exog_column=None,
         predict_col="forecast",
     ):
         super().__init__()
+        self.model_type = model_type
         self.model_clazz = get_statsmodels_model(model_type)
-        self.endog_column = endog_column
+        self.endog = endog
         self.time_col = time_col
         self.exog_column = exog_column
         self.max_datetime_per_group = None
@@ -40,7 +46,7 @@ class GroupedStatsmodels(GroupedForecaster):
 
     def _fit_model(self, group_key, df, **kwargs):
 
-        endog = df[self.endog_column]
+        endog = df[self.endog]
 
         kwarg_extract = extract_fit_kwargs(self.model_clazz, **kwargs)
 
@@ -78,12 +84,16 @@ class GroupedStatsmodels(GroupedForecaster):
 
     def _predict_single_group(self, row_entry):
         group_key = row_entry[self.master_key]
-        model = self.model[group_key]
+        model = self.model[group_key]._results
         start = row_entry[PREDICT_START_COL]
         end = row_entry[PREDICT_END_COL]
-        prediction = pd.DataFrame(
-            model.predict(start=start, end=end), columns=[self.predict_col]
-        )
+        if self.model_type == "VAR":
+            units = _resolve_forecast_duration_var_model(row_entry)
+            prediction = pd.DataFrame(model.forecast(model.endog, units))
+        else:
+            prediction = pd.DataFrame(model.predict(start=start, end=end))
+        prediction_name = prediction.columns[0]
+        prediction = prediction.rename({prediction_name: self.predict_col}, axis=1)
         prediction.index.name = self.time_col
         prediction = prediction.reset_index()
         prediction[self.master_key] = prediction.apply(lambda x: group_key, 1)
@@ -135,11 +145,18 @@ class GroupedStatsmodels(GroupedForecaster):
 
     def save(self, path: str):
 
-        # The save artifact implementation has to deal with the 'Results' instance of the model
-        # type and not the original model type.
-        # Need to specify the result type through inspection so that when serde of the artifact
-        # it can be loaded as the correct type (maintain a lookup dict for model_type: result_type)
-        pass
+        group_statsmodels_save(self, path)
 
-    def load(self, path: str):
-        pass
+    @classmethod
+    def load(cls, path: str):
+
+        attr_dict = group_statsmodels_load(path)
+        init_args = inspect.signature(cls.__init__).parameters.keys()
+        init_cls = [attr_dict[arg] for arg in init_args if arg != "self"]
+        instance = cls(*init_cls)
+        for key, value in attr_dict.items():
+            if key not in init_args:
+                setattr(instance, key, value)
+
+        return instance
+
