@@ -107,6 +107,3 @@ def extract_params(model):
     """
 
     return {param: getattr(model, param) for param in _get_extract_params()}
-
-
-

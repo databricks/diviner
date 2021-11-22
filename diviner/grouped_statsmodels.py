@@ -17,7 +17,7 @@ from diviner.utils.common import (
     convert_forecast_horizon_series_to_df,
     restructure_predictions,
     fit_check,
-    model_init_check
+    model_init_check,
 )
 from diviner.scoring.statsmodels_scoring import _extract_statsmodels_metrics
 from diviner.utils.common import create_reporting_df
@@ -38,6 +38,7 @@ class GroupedStatsmodels(GroupedForecaster):
     Grouped model for processing a grouped collection of a single type of statsmodels model upon
     a single dataset.
     """
+
     def __init__(
         self,
         model_type: str,

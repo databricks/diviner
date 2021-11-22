@@ -8,7 +8,9 @@ def test_datetime_indexing():
 
     data = data_generator.generate_test_data(3, 4, 1000, "2020-01-01", 6)
 
-    grouped_data = PandasGroupGenerator(data.key_columns).generate_processing_groups(data.df)
+    grouped_data = PandasGroupGenerator(data.key_columns).generate_processing_groups(
+        data.df
+    )
 
     indexed_data = apply_datetime_index_to_groups(grouped_data, "ds")
 

@@ -3,6 +3,7 @@ from typing import Tuple
 from diviner.exceptions import DivinerException
 from diviner.config.constants import MASTER_GROUP_KEY
 
+
 class BaseGroupGenerator(abc.ABC):
     """
     Abstract class for defining the basic elements of performing a group processing collection

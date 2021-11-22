@@ -3,6 +3,7 @@ from collections import defaultdict
 from typing import Tuple
 from diviner.config.constants import MASTER_GROUP_KEY
 
+
 class GroupedForecaster(abc.ABC):
     """
     Base class exposing consistent public methods for any plugin grouped forecasting API.
