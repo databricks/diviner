@@ -4,7 +4,7 @@ from diviner.exceptions import DivinerException
 from collections import namedtuple
 
 
-def get_statsmodels_model(model_name: str):
+def _get_statsmodels_model(model_name: str):
 
     model_name_lowered = str.lower(model_name)
     statsmodels_api = importlib.import_module("statsmodels.tsa.api")
@@ -21,7 +21,7 @@ def get_statsmodels_model(model_name: str):
     return clazz
 
 
-def extract_fit_kwargs(clazz, **kwargs):
+def _extract_fit_kwargs(clazz, **kwargs):
     """
     Helper function for separating out class and fit method kwargs for a particular model
     :param clazz: The class instance of the user-chosen model

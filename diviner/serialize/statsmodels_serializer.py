@@ -2,7 +2,7 @@ import pickle
 import json
 from ast import literal_eval
 
-from diviner.config.grouped_statsmodels.statsmodels_config import get_statsmodels_model
+from diviner.config.grouped_statsmodels.statsmodels_config import _get_statsmodels_model
 
 _SERDE_EXCLUDE = {"model_clazz"}
 _SERDE_PICKLE_OBJ = {"model", "max_datetime_per_group"}
@@ -52,7 +52,7 @@ class ModelDecoder:
                     model_decode[key] = value
             if key in _SERDE_PICKLE_OBJ:
                 model_decode[key] = self._decode_obj(value)
-        model_decode["model_clazz"] = get_statsmodels_model(payload_eval["model_type"])
+        model_decode["model_clazz"] = _get_statsmodels_model(payload_eval["model_type"])
         return model_decode
 
 

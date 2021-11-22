@@ -1,12 +1,13 @@
-import pandas as pd
 import inspect
 import importlib
+import warnings
+import pytest
+import pandas as pd
+from statsmodels.tools.sm_exceptions import ConvergenceWarning
 
 from tests import data_generator
 from diviner.grouped_statsmodels import GroupedStatsmodels
-from statsmodels.tools.sm_exceptions import ConvergenceWarning
-import pytest
-import warnings
+from diviner.exceptions import DivinerException
 
 
 LAGS_MODELS = {"ARDL", "AutoReg"}
@@ -21,7 +22,7 @@ def get_statsmodels_classes():
     # or have initialization non-determinism that create flaky test cases (~ 10% of the time
     # they will throw an exception due to ill-fitting or convergence problems) with the test
     # data set.
-    model_blacklist = [
+    model_exclusion_set = [
         "AR",
         "ArmaProcess",
         "MarkovAutoregression",
@@ -37,12 +38,11 @@ def get_statsmodels_classes():
         for model, _ in inspect.getmembers(
             importlib.import_module("statsmodels.tsa.api"), inspect.isclass
         )
-        if model not in model_blacklist
+        if model not in model_exclusion_set
     ]
 
 
 def _get_individual_model(model, index):
-    #  TODO: abstract this into a test helper module
 
     _model_key = list(model.model.keys())[index]
     return model.model[_model_key]
@@ -60,6 +60,28 @@ def assemble_prediction_df(train_data, start, end):
         row["end"] = end
         prediction_configuration.append(row)
     return pd.DataFrame.from_records(prediction_configuration)
+
+
+@pytest.mark.parametrize(
+    "method", ["get_model_params", "get_metrics", "save", "predict", "forecast"]
+)
+def test_statsmodels_fit_checks(method):
+
+    model = GroupedStatsmodels(model_type="AutoReg", endog="y", time_col="ds")
+
+    with pytest.raises(DivinerException, match="The model has not been fit."):
+        getattr(model, method)()
+
+
+@pytest.mark.parametrize("method", ["fit"])
+def test_statsmodels_init_checks(method):
+    train = data_generator.generate_test_data(2, 2, 1000, "2020-02-02", 1)
+    model = GroupedStatsmodels(model_type="Holt", endog="y", time_col="ds").fit(
+        train.df, train.key_columns
+    )
+
+    with pytest.raises(DivinerException, match="The model has already been fit."):
+        getattr(model, method)()
 
 
 def test_simple_arima_fit():
@@ -156,7 +178,7 @@ def test_holt_model_fit_and_metrics_gathering():
     )
 
     with warnings.catch_warnings(record=True) as w:
-        scores = model.score_model(metrics=["mse", "sse", "aic"], warning=True)
+        scores = model.get_metrics(metrics=["mse", "sse", "aic"], warning=True)
 
         assert len(w) == 6
         assert issubclass(w[-1].category, RuntimeWarning)
@@ -164,7 +186,7 @@ def test_holt_model_fit_and_metrics_gathering():
         assert {"sse", "aic"}.issubset(set(scores.columns))
 
     with warnings.catch_warnings(record=True) as w2:
-        scores_warnings_to_logs = model.score_model(
+        scores_warnings_to_logs = model.get_metrics(
             metrics=["mse", "sse", "aic"], warning=False
         )
         assert not w2
@@ -240,3 +262,15 @@ def test_statsmodels_model_types(model_type):
     prediction = model.predict(prediction_df)
 
     assert len(prediction) > 0
+
+
+def test_statsmodels_param_extract():
+    group_count = 8
+    train = data_generator.generate_test_data(3, group_count, 2000, "2020-02-02", 1)
+    model = GroupedStatsmodels(model_type="Holt", endog="y", time_col="ds").fit(
+        train.df, train.key_columns
+    )
+    params = model.get_model_params()
+
+    assert len(params) == group_count
+    assert {row > 0 for row in params["smoothing_level"]}

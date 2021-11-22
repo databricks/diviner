@@ -47,7 +47,7 @@ def _extract_statsmodels_single_model_metrics(model, metrics, warning):
     return scores
 
 
-def extract_statsmodels_metrics(grouped_model, metrics, warning):
+def _extract_statsmodels_metrics(grouped_model, metrics, warning):
 
     metrics = _validate_metrics(metrics)
     extract = {
