@@ -48,7 +48,7 @@ def test_prophet_save_and_load():
     train = data_generator.generate_test_data(2, 2, 1000, "2020-01-01", 1)
     grouped_model = GroupedProphet().fit(train.df, train.key_columns)
     grouped_model.save(save_path)
-    loaded_model = GroupedProphet().load(save_path)
+    loaded_model = GroupedProphet.load(save_path)
     forecasts = loaded_model.forecast(25, "D")
 
     shutil.rmtree(os.path.dirname(save_path))
@@ -78,7 +78,7 @@ def test_prophet_cross_validation_extract():
 
     model = GroupedProphet(uncertainty_samples=0).fit(train.df, train.key_columns)
 
-    scores = model.cross_validation(
+    scores = model.cross_validate_and_score(
         initial="100 days", period="90 days", horizon="15 days", parallel=None
     )
 
@@ -93,7 +93,7 @@ def test_prophet_cross_validation_extract_custom_scores():
 
     model = GroupedProphet(uncertainty_samples=0).fit(train.df, train.key_columns)
 
-    scores = model.cross_validation(
+    scores = model.cross_validate_and_score(
         initial="100 days",
         period="90 days",
         horizon="15 days",

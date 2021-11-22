@@ -8,7 +8,7 @@ def test_base_cv_metrics_extract():
     init_prophet = Prophet()
 
     base = ["mse", "rmse", "sse", "mae", "coverage"]
-    metric_result_positive_uncertainty = prophet_config_utils._reconcile_metrics(
+    metric_result_positive_uncertainty = prophet_config_utils._remove_coverage_metric_if_necessary(
         base, init_prophet.uncertainty_samples
     )
 
@@ -16,7 +16,7 @@ def test_base_cv_metrics_extract():
 
     setattr(init_prophet, "uncertainty_samples", 0)
 
-    metric_result_no_uncertainty = prophet_config_utils._reconcile_metrics(
+    metric_result_no_uncertainty = prophet_config_utils._remove_coverage_metric_if_necessary(
         base, init_prophet.uncertainty_samples
     )
 

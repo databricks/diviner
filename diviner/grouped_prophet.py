@@ -1,3 +1,4 @@
+import inspect
 import os
 from copy import deepcopy
 from prophet import Prophet
@@ -7,7 +8,7 @@ from diviner.model.base_model import GroupedForecaster
 from diviner.data.pandas_group_generator import PandasGroupGenerator
 from diviner.utils.prophet_utils import (
     generate_future_dfs,
-    cross_validate_model,
+    _cross_validate_and_score_model,
     _create_reporting_df,
     _extract_params,
 )
@@ -92,8 +93,9 @@ class GroupedProphet(GroupedForecaster):
                                   param to ensure that the appropriate per-univariate series data
                                   is used to train each model.
         :param kwargs: overrides for underlying Prophet `.fit()` **kwargs (i.e., optimizer backend
-                       library configuration overrides) for further information, see:
-                    https://facebook.github.io/prophet/docs/diagnostics.html#hyperparameter-tuning
+                        library configuration overrides) for further information, see:
+                        (https://facebook.github.io/prophet/docs/diagnostics.html\
+                        #hyperparameter-tuning)
         :return: object instance (self) of GroupedProphet
         """
 
@@ -180,7 +182,16 @@ class GroupedProphet(GroupedForecaster):
         return self._run_predictions(grouped_data)
 
     @_fit_check
-    def cross_validation(self, horizon, metrics=None, **kwargs):
+    def cross_validate_and_score(
+        self,
+        horizon,
+        period=None,
+        initial=None,
+        parallel=None,
+        cutoffs=None,
+        metrics=None,
+        **kwargs,
+    ):
         """
         Metric scoring method that will run backtesting cross validation scoring for each
         time series specified within the model after a `.fit()` has been performed.
@@ -202,6 +213,14 @@ class GroupedProphet(GroupedForecaster):
                         note: The `coverage` metric will be removed if error estiamtes are not
                         configured to be calculated as part of the Prophet `.fit()` method by
                         setting `uncertainty_samples=0` within the GroupedProphet `.fit()` method.
+         :param period: the periodicity of how often a windowed validation will occur. Default is
+                        0.5 * horizon value.
+        :param initial: The minimum amount of training data to include in the first cross validation
+                        window.
+        :param parallel: mode of computing cross validation statistics.
+                        Supported modes: (None, "processes", or "threads")
+        :param cutoffs: List of pd.Timestamp values that specify cutoff overrides to be used in
+                        conducting cross validation.
         :param kwargs: cross validation overrides to Prophet's
                       `prophet.diagnostics.cross_validation()` and
                       `prophet.diagnostics.performance_metrics()` functions
@@ -209,7 +228,9 @@ class GroupedProphet(GroupedForecaster):
                  to test as columns with each row representing a group.
         """
         scores = {
-            group_key: cross_validate_model(model, horizon, metrics, **kwargs)
+            group_key: _cross_validate_and_score_model(
+                model, horizon, period, initial, parallel, cutoffs, metrics, **kwargs
+            )
             for group_key, model in self.model.items()
         }
 
@@ -282,22 +303,24 @@ class GroupedProphet(GroupedForecaster):
         with open(path, "w") as f:
             f.write(model_as_json)
 
-    def load(self, path: str):
+    @classmethod
+    def load(cls, path: str):
         """
         Load the model from the specified path, deserializing it from its JSON string
         representation and returning a GroupedProphet instance.
-        note: If a model has already been fit on this instance, calling `.load()` will replace
-        this instance's attributes with the loaded model's.
 
         :param path: File system path of a saved GroupedProphet model.
         :return: An instance of GroupedProphet with fit attributes applied.
         """
 
-        if not os.path.isfile(path):
-            raise DivinerException(
-                f"There is no valid model saved at the specified path: {path}"
-            )
-        with open(path, "r") as f:
-            raw_model = f.read()
+        attr_dict = grouped_model_from_json(path)
+        init_args = inspect.signature(cls.__init__).parameters.keys()
+        init_cls = [
+            attr_dict[arg] for arg in init_args if arg not in {"self", "kwargs"}
+        ]
+        instance = cls(*init_cls)
+        for key, value in attr_dict.items():
+            if key not in init_args:
+                setattr(instance, key, value)
 
-        return grouped_model_from_json(raw_model, "diviner", "GroupedProphet")
+        return instance

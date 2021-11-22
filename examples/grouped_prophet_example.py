@@ -1,4 +1,4 @@
-from tests.data_generator import generate_test_data
+from examples.example_data_generator import generate_example_data
 from diviner import GroupedProphet
 
 if __name__ == "__main__":
@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     # For guidance on this data transposition from denormalized representations, see:
     # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.melt.html
-    generated_data = generate_test_data(
+    generated_data = generate_example_data(
         column_count=3,
         series_count=10,
         series_size=365 * 5,
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     retrieved_model = GroupedProphet().load(save_path)
 
     # Score the model and print the results
-    model_scores = retrieved_model.cross_validation(
+    model_scores = retrieved_model.cross_validate_and_score(
         horizon="30 days",
         period="180 days",
         initial="365 days",

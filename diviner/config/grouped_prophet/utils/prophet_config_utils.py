@@ -4,7 +4,7 @@ around the Prophet library.
 """
 
 
-def _reconcile_metrics(metrics, uncertainty_samples):
+def _remove_coverage_metric_if_necessary(metrics, uncertainty_samples):
     """
     Private function for removing 'coverage' as a metric if the error estimates are never
     calculated (saves on runtime execution for cross validation)

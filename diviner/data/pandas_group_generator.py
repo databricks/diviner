@@ -71,7 +71,7 @@ class PandasGroupGenerator(BaseGroupGenerator):
 
     def generate_processing_groups(self, df):
         """
-        Method for generating the collection of [(master_grouping_key, <group DataFrame)]
+        Method for generating the collection of [(master_grouping_key, <group DataFrame>)]
 
         This method will call `_create_master_key_column()` to generate a column containing
         the tuple of the values within the `group_key_columns` fields, then generate an

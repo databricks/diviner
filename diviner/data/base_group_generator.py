@@ -73,6 +73,37 @@ class BaseGroupGenerator(abc.ABC):
         `master_group_key` entry that defines a specific datetime series for forecasting.
 
         :param df: The user-input normalized DataFrame with group_key_columns
-        :return: An iterable collection of a relation between master_group_key and datetime series
-        DataFrame
+        :return: A list of dictionaries of {group_key: <group's univariate series data>} structure
+        for isolated processing by the model APIs.
+        For example: with a normalized dataframe input of:
+        |ds         |region     |country    |y
+        |2020-01-01 |SW         |USA        |42
+        |2020-01-02 |SW         |USA        |11
+        |2020-01-01 |NE         |USA        |31
+        |2020-01-01 |Ontario    |CA         |12
+
+        The output structure should be, with the group_keys value specified as
+        ("country", "region"):
+
+        [
+            {
+                ("USA", "SW"):
+                    |ds         |region     |country    |y
+                    |2020-01-01 |SW         |USA        |42
+                    |2020-01-02 |SW         |USA        |11
+            },
+            {
+                ("USA", "NE"):
+                    |ds         |region     |country    |y
+                    |2020-01-01 |NE         |USA        |31
+            },
+            {
+                ("CA", "Ontario"):
+                    |ds         |region     |country    |y
+                    |2020-01-01 |Ontario    |CA         |12
+            }
+        ]
+        The list wrapper around dictionaries is to allow for multiprocessing support without having
+        to contend with encapsulating the entire dictionary for the processing of a single key
+        and value pair.
         """

@@ -44,7 +44,16 @@ def generate_future_dfs(grouped_model, horizon: int, frequency: str):
     return list(df_collection.items())
 
 
-def cross_validate_model(model, horizon, metrics=None, **kwargs):
+def _cross_validate_and_score_model(
+    model,
+    horizon,
+    period=None,
+    initial=None,
+    parallel=None,
+    cutoffs=None,
+    metrics=None,
+    **kwargs
+):
     """
     Wrapper around Prophet's `cross_validation` and `performance_metrics` functions within
     the `prophet.diagnostics` module.
@@ -56,20 +65,22 @@ def cross_validate_model(model, horizon, metrics=None, **kwargs):
     :param horizon: String pd.Timedelta format that defines the length of forecasting values
                     to generate in order to acquire error metrics.
                     examples: '30 days', '1 year'
+     :param period: the periodicity of how often a windowed validation will occur. Default is
+                    0.5 * horizon value.
+    :param initial: The minimum amount of training data to include in the first cross validation
+                    window.
+    :param parallel: mode of computing cross validation statistics. (None, processes, or threads)
+    :param cutoffs: List of pd.Timestamp values that specify cutoff overrides to be used in
+                    conducting cross validation.
     :param metrics: List of metrics to evaluate and return for the provided model
                     note: see supported metrics in Prophet documentation:
                     https://facebook.github.io/prophet/docs/diagnostics.html#cross-validation
-    :param kwargs: cross validation overrides for Prophet's implementation of backtesting.
-                   note: two of the potential kwargs entries that are contained here can be for the
-                   *args defaulted values within Prophet's `performance_metrics` function:
-                   'rolling_window' and 'monthly' which specify how to roll up the
-                   'raw' data returned from the `cross_validation` function. If not specified
-                   within kwargs, they will retain their defaulted values from within Prophet.
+    :param kwargs: cross validation overrides for Prophet's implementation of metric evaluation.
     :return: Dict[str, float] of each metric and its value averaged over each time horizon.
     """
 
     if metrics:
-        metrics = prophet_config_utils._reconcile_metrics(
+        metrics = prophet_config_utils._remove_coverage_metric_if_necessary(
             metrics, model.uncertainty_samples
         )
 
@@ -84,8 +95,11 @@ def cross_validate_model(model, horizon, metrics=None, **kwargs):
     model_cv = cross_validation(
         model=model,
         horizon=horizon,
+        period=period,
+        initial=initial,
+        parallel=parallel,
+        cutoffs=cutoffs,
         disable_tqdm=kwargs.pop("disable_tqdm", True),
-        **kwargs
     )
     horizon_metrics = performance_metrics(
         model_cv, metrics=metrics, **performance_metrics_args
