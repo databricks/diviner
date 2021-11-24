@@ -1,12 +1,18 @@
+"""
+Module for serialization and deserialization for GroupedProphet models.
+This implementation uses JSON strings for serialization to aid in user legibility of the
+saved model.
+"""
+import os
 import json
-import importlib
-from prophet.serialize import model_from_json, model_to_json
 from ast import literal_eval
+from prophet.serialize import model_from_json, model_to_json
+from diviner.exceptions import DivinerException
 
 GROUPED_MODEL_ATTRIBUTES = ["group_key_columns", "master_key"]
 
 
-def _grouped_model_serialize(grouped_model):
+def _grouped_model_to_dict(grouped_model):
 
     model_dict = {
         attr: getattr(grouped_model, attr) for attr in GROUPED_MODEL_ATTRIBUTES
@@ -21,42 +27,44 @@ def _grouped_model_serialize(grouped_model):
 def grouped_model_to_json(grouped_model):
     """
     Serialization helper function to convert a GroupedProphet instance to json for saving to disk.
+
     :param grouped_model: Instance of GroupedProphet() that has been fit.
     :return: serialized json string of the model's attributes
     """
 
-    model_dict = _grouped_model_serialize(grouped_model)
+    model_dict = _grouped_model_to_dict(grouped_model)
+    for key in vars(grouped_model).keys():
+        if key != "model":
+            model_dict[key] = getattr(grouped_model, key)
+
     return json.dumps(model_dict)
 
 
-def _grouped_model_deserialize(model_dict, module, clazz):
+def _grouped_model_from_dict(raw_model):
 
-    init_attr = {key: model_dict[key] for key in GROUPED_MODEL_ATTRIBUTES}
-    raw_model_payload = model_dict["model"]
     deser_model_payload = {
         literal_eval(master_key): model_from_json(payload)
-        for master_key, payload in raw_model_payload.items()
+        for master_key, payload in raw_model.items()
     }
-
-    module_ = importlib.import_module(module)
-    model = getattr(module_, clazz)()
-    setattr(model, "master_key", init_attr["master_key"])
-    setattr(model, "group_key_columns", init_attr["group_key_columns"])
-    setattr(model, "model", deser_model_payload)
-
-    return model
+    return deser_model_payload
 
 
-def grouped_model_from_json(model_json, module, clazz):
+def grouped_model_from_json(path):
     """
-    Helper function to load the grouped model structure from serialized json as an instance
-    of GroupedProphet()
-    :param model_json: The json string serialized instance of a saved GroupedProphet model
-    :param module: The package module name for the model type
-    :param clazz: The class instance of the model
-    :return: Instance of GroupedProphet that applies the class arguments from the saved model
+    Helper function to load the grouped model structure from serialized json and deserialize
+    the Prophet instances.
+
+    :param path: The storage location of a saved GroupedProphet object
+    :return: Dictionary of instance attributes
     """
+    if not os.path.isfile(path):
+        raise DivinerException(
+            f"There is no valid model saved at the specified path: {path}"
+        )
+    with open(path, "r") as f:
+        raw_model = json.load(f)
 
-    model_dict = json.loads(model_json)
+    model_deser = _grouped_model_from_dict(raw_model["model"])
+    raw_model["model"] = model_deser
 
-    return _grouped_model_deserialize(model_dict, module, clazz)
+    return raw_model

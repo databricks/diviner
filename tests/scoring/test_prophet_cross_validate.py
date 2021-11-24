@@ -1,5 +1,4 @@
 from diviner.grouped_prophet import GroupedProphet
-from diviner.exceptions import DivinerException
 from diviner.scoring import prophet_cross_validate
 from tests import data_generator
 import pytest
@@ -42,7 +41,7 @@ def test_group_performance_metrics():
         parallel="threads",
     )
 
-    with pytest.raises(DivinerException):
+    with pytest.raises(ValueError):
         bad_metrics = ["rmse", "mse", "invalid"]
         prophet_cross_validate.group_performance_metrics(
             cv_results, model, bad_metrics, rolling_window=0.25

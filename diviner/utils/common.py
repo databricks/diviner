@@ -5,10 +5,11 @@ from collections import namedtuple
 from diviner.config.constants import PREDICT_END_COL, PREDICT_START_COL
 
 
-def restructure_fit_payload(train_results: List[Dict[str, any]]) -> Dict[str, any]:
+def _restructure_fit_payload(train_results: List[Dict[str, any]]) -> Dict[str, any]:
     """
     Restructuring function for converting a collection of dictionaries into a single dictionary
-    for the final training grouped model structure
+    for the final training grouped model structure.
+
     :param train_results: raw training (fit) results from a grouped model
     :return: dictionary of {master_grouping_key: model}
     """
@@ -24,7 +25,8 @@ def _reorder_cols(
 ) -> pd.DataFrame:
     """
     Helper function for creating a user-friendly schema structure for the output prediction
-    dataframe that mirrors what would be expected (grouping columns preceding data)
+    dataframe that mirrors what would be expected (grouping columns preceding data).
+
     :param df: dataframe with grouping columns appended to the predictions
     :param key_columns: the key column names that have been appended right-most to the prediction
                         dataframe.
@@ -38,11 +40,12 @@ def _reorder_cols(
     return reordered_df
 
 
-def restructure_predictions(prediction_dfs, key_columns, master_key):
+def _restructure_predictions(prediction_dfs, key_columns, master_key):
     """
     Restructuring function to create the final prediction output dataframe from a collection
     of dataframes, adding in filtering fields to the prediction to persist the original
     structure of the submitted data.
+
     :param prediction_dfs: The per-group dataframes of forecasted predictions
     :param key_columns: Names of the grouping key columns that were defined during training
     :param master_key: The master grouping key column name
@@ -57,10 +60,11 @@ def restructure_predictions(prediction_dfs, key_columns, master_key):
     return reordered
 
 
-def fit_check(fn):
+def _fit_check(fn):
     """
     Model fit validation decorator. Performs a check to ensure that the model has been fit in
     order to perform actions that require a collection of models to have been fit.
+
     :param fn: Wrapper for methods that require a fit collection of models to be set.
     :return: An instance method
     """
@@ -68,36 +72,38 @@ def fit_check(fn):
     def _fit_check(self, *args, **kwargs):
         if not self.model:
             raise DivinerException(
-                "The model has not been fit. Please fit model first."
+                "The model has not been fit. Please fit the model first."
             )
         return fn(self, *args, **kwargs)
 
     return _fit_check
 
 
-def model_init_check(fn):
+def _model_init_check(fn):
     """
     Model initialization validation decorator. Ensures that the model hasn't already been fit
     when running certain methods in the GroupedProphet object instance.
+
     :param fn: Wrapper for methods that require a state where .fit() has not been already executed
                on the instance.
     :return: An instance method
     """
 
-    def _model_init_check(self, *args, **kwargs):
+    def model_init_check(self, *args, **kwargs):
         if self.model:
             raise DivinerException(
                 "The model has already been fit. Create a new instance to fit the model again."
             )
         return fn(self, *args, **kwargs)
 
-    return _model_init_check
+    return model_init_check
 
 
-def validate_keys_in_df(df, key_columns: Tuple):
+def _validate_keys_in_df(df, key_columns: Tuple):
     """
     Validation function for ensuring that the grouping keys that are passed in to the
-    class constructor are present in the passed-in dataframe
+    class constructor are present in the passed-in DataFrame.
+
     :param df: DataFrame of grouping keys and data for training or inference
     :param key_columns: args-based key columns passed in for grouping on
     :return: None

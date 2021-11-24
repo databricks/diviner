@@ -1,3 +1,4 @@
+import inspect
 import os
 from copy import deepcopy
 from prophet import Prophet
@@ -7,16 +8,16 @@ from diviner.model.base_model import GroupedForecaster
 from diviner.data.pandas_group_generator import PandasGroupGenerator
 from diviner.utils.prophet_utils import (
     generate_future_dfs,
-    cross_validate_model,
-    extract_params,
+    _cross_validate_and_score_model,
+    _create_reporting_df,
+    _extract_params,
 )
 from diviner.utils.common import (
-    restructure_fit_payload,
-    fit_check,
-    model_init_check,
-    validate_keys_in_df,
-    restructure_predictions,
-    create_reporting_df,
+    _restructure_fit_payload,
+    _fit_check,
+    _model_init_check,
+    _validate_keys_in_df,
+    _restructure_predictions,
 )
 from diviner.serialize.prophet_serializer import (
     grouped_model_from_json,
@@ -38,6 +39,9 @@ class GroupedProphet(GroupedForecaster):
 
     def __init__(self, **kwargs):
         """
+        For the Prophet initialization constructor, showing what arguments are available to be
+        passed in as `kwargs` in this class' constructor, see:
+        https://github.com/facebook/prophet/blob/main/python/prophet/forecaster.py
 
         :param kwargs: Prophet class configuration overrides
         """
@@ -49,13 +53,26 @@ class GroupedProphet(GroupedForecaster):
 
         return {group_key: Prophet(**self.prophet_init_kwargs).fit(df, **kwargs)}
 
-    @model_init_check
+    @_model_init_check
     def fit(self, df, group_key_columns, **kwargs):
         """
         Main fit method for executing a Prophet .fit() on the submitted DataFrame, grouped by
         the `group_key_columns` submitted.
         When initiated, the input DataFrame (`df`) will be split into an iterable collection
         that represents a 'core' series to be fit against.
+
+        This `fit` method is a per-group wrapper around Prophet's `fit()` implementation. See:
+        https://facebook.github.io/prophet/docs/quick_start.html for information on the basic
+        API, as well as links to the source code that will demonstrate all of the options
+        available for overriding default functionality.
+        For a full description of all parameters that are available to the optimizer, run the
+        following in a shell:
+
+        ```
+        import pystan
+        help(pystan.StanModel.optimizing)
+        ```
+
         :param df: Normalized pandas DataFrame containing group_key_columns, a 'ds' column, and
                    a target 'y' column.
                    An example normalized data set to be used in this method:
@@ -67,16 +84,24 @@ class GroupedProphet(GroupedForecaster):
 
         :param group_key_columns: The columns in the `df` argument that define, in aggregate, a
                                   unique time series entry. For example, with the DataFrame
-                                  referenced in the `df` param, group_key_columns would be:
+                                  referenced in the `df` param, group_key_columns could be:
                                   ('region', 'zone')
+                                  Specifying an incomplete grouping collection, while valid
+                                  through this API (i.e., ('region')), can cause serious problems
+                                  with any forecast that is built with this API. Ensure that all
+                                  relevant keys are defined in the input `df` and declared in this
+                                  param to ensure that the appropriate per-univariate series data
+                                  is used to train each model.
         :param kwargs: overrides for underlying Prophet `.fit()` **kwargs (i.e., optimizer backend
-                       library configuration overrides)
-        :return: object instance
+                        library configuration overrides) for further information, see:
+                        (https://facebook.github.io/prophet/docs/diagnostics.html\
+                        #hyperparameter-tuning)
+        :return: object instance (self) of GroupedProphet
         """
 
         self.group_key_columns = group_key_columns
 
-        validate_keys_in_df(df, self.group_key_columns)
+        _validate_keys_in_df(df, self.group_key_columns)
 
         grouped_data = PandasGroupGenerator(
             self.group_key_columns
@@ -87,7 +112,7 @@ class GroupedProphet(GroupedForecaster):
             for group_key, group_df in grouped_data
         ]
 
-        self.model = restructure_fit_payload(fit_model)
+        self.model = _restructure_fit_payload(fit_model)
 
         return self
 
@@ -96,6 +121,7 @@ class GroupedProphet(GroupedForecaster):
         Internal method for predicting a single timeseries group from the specified group_key
         and DataFrame supplied (consisting of, at a minimum, a 'ds' column of datetime events
         to forecast).
+
         :param group_key: A master_group_key entry tuple generated from the model's fit stage.
         :param df: DataFrame that consists of datetime entries to forecast values for.
         :return: DataFrame consisting of the master_group_key value from the `group_key` argument
@@ -117,7 +143,8 @@ class GroupedProphet(GroupedForecaster):
     def _run_predictions(self, grouped_data):
         """
         Private method for running predictions for each group in the prediction processing
-        collection with a list comprehension
+        collection with a list comprehension.
+
         :param grouped_data: Collection of List[(master_group_key, future_df)]
         :return: A consolidated (unioned) single DataFrame of all groups forecasts
         """
@@ -125,11 +152,11 @@ class GroupedProphet(GroupedForecaster):
             self._predict_prophet(group_key, df) for group_key, df in grouped_data
         ]
 
-        return restructure_predictions(
+        return _restructure_predictions(
             predictions, self.group_key_columns, self.master_key
         )
 
-    @fit_check
+    @_fit_check
     def predict(self, df):
         """
         Main prediction method for generating forecast values based on the group keys and dates
@@ -147,7 +174,7 @@ class GroupedProphet(GroupedForecaster):
         :return: A consolidated (unioned) single DataFrame of all groups forecasts
         """
 
-        validate_keys_in_df(df, self.group_key_columns)
+        _validate_keys_in_df(df, self.group_key_columns)
 
         grouped_data = PandasGroupGenerator(
             self.group_key_columns
@@ -155,29 +182,46 @@ class GroupedProphet(GroupedForecaster):
 
         return self._run_predictions(grouped_data)
 
-    @fit_check
-    def cross_validation(self, horizon, metrics=None, **kwargs):
+    @_fit_check
+    def cross_validate_and_score(
+        self,
+        horizon,
+        period=None,
+        initial=None,
+        parallel=None,
+        cutoffs=None,
+        metrics=None,
+        **kwargs,
+    ):
         """
         Metric scoring method that will run backtesting cross validation scoring for each
         time series specified within the model after a `.fit()` has been performed.
-        Default metrics that will be returned:
-        `["mse", "rmse", "mae", "mape", "mdape", "smape", "coverage"]`
         note: If the configuration overrides for the model during `fit()` set
         `uncertainty_samples=0`, the metric `coverage` will be removed from metrics calculation,
         saving a great deal of runtime overhead since the prediction errors (yhat_upper, yhat_lower)
         will not be calculated.
         note: overrides to functionality of both `cross_validation()` and `performance_metrics()`
           within Prophet's `diagnostics` module are handled here as kwargs.
+        These arguments in this method's signature are directly passed, per model, to prophet's
+        `cross_validation` module.
+
         :param horizon: String pd.Timedelta format that defines the length of forecasting values
                         to generate in order to acquire error metrics.
                         examples: '30 days', '1 year'
         :param metrics: Specific subset list of metrics to calculate and return.
-                        note: metrics supplied that are not a member of:
-                        `["mse", "rmse", "mae", "mape", "mdape", "smape", "coverage"]` will
-                        raise a Diviner Exception.
+                        note: see supported metrics in Prophet documentation:
+                        https://facebook.github.io/prophet/docs/diagnostics.html#cross-validation
                         note: The `coverage` metric will be removed if error estiamtes are not
                         configured to be calculated as part of the Prophet `.fit()` method by
                         setting `uncertainty_samples=0` within the GroupedProphet `.fit()` method.
+         :param period: the periodicity of how often a windowed validation will occur. Default is
+                        0.5 * horizon value.
+        :param initial: The minimum amount of training data to include in the first cross validation
+                        window.
+        :param parallel: mode of computing cross validation statistics.
+                        Supported modes: (None, "processes", or "threads")
+        :param cutoffs: List of pd.Timestamp values that specify cutoff overrides to be used in
+                        conducting cross validation.
         :param kwargs: cross validation overrides to Prophet's
                       `prophet.diagnostics.cross_validation()` and
                       `prophet.diagnostics.performance_metrics()` functions
@@ -185,28 +229,32 @@ class GroupedProphet(GroupedForecaster):
                  to test as columns with each row representing a group.
         """
         scores = {
-            group_key: cross_validate_model(model, horizon, metrics, **kwargs)
+            group_key: _cross_validate_and_score_model(
+                model, horizon, period, initial, parallel, cutoffs, metrics, **kwargs
+            )
             for group_key, model in self.model.items()
         }
 
-        return create_reporting_df(scores, self.master_key, self.group_key_columns)
+        return _create_reporting_df(scores, self.master_key, self.group_key_columns)
 
+    @_fit_check
     def extract_model_params(self):
         """
         Utility method for extracting all model parameters from each model within the processed
         groups.
+
         :return: A consolidated Pandas DataFrame containing the model parameters as columns
                  with each row entry representing a group.
         """
 
         model_params = {
-            group_key: extract_params(model) for group_key, model in self.model.items()
+            group_key: _extract_params(model) for group_key, model in self.model.items()
         }
-        return create_reporting_df(
+        return _create_reporting_df(
             model_params, self.master_key, self.group_key_columns
         )
 
-    @fit_check
+    @_fit_check
     def forecast(self, horizon: int, frequency: str):
         """
         Forecasting method that will automatically generate forecasting values where the 'ds'
@@ -229,19 +277,20 @@ class GroupedProphet(GroupedForecaster):
                           (i.e., 'D', 'M', 'Y')
         note see for full listing of available strings:
           https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
-        :return: A consolidated (unioned) single DataFrame of all groups forecasts
+        :return: A consolidated (unioned) single DataFrame of forecasts for all groups
         """
 
         grouped_data = generate_future_dfs(self.model, horizon, frequency)
 
         return self._run_predictions(grouped_data)
 
-    @fit_check
+    @_fit_check
     def save(self, path: str):
         """
-        Serialization of the class instance of this model, provided that it has been fit.
-        This will store the model as a JSON string.
-        :param path: Location on the file system to store the model artifact.
+        Serialize the model as a JSON string and write it to the provided path.
+        note: The model must be fit in order to save it.
+
+        :param path: Location on the file system to store the model.
         :return: None
         """
 
@@ -255,20 +304,24 @@ class GroupedProphet(GroupedForecaster):
         with open(path, "w") as f:
             f.write(model_as_json)
 
-    @model_init_check
-    def load(self, path: str):
+    @classmethod
+    def load(cls, path: str):
         """
-        Deserialization of the model artifact from local JSON representation to an instance of
-        `GroupedProphet()` based on the attributes from a fit model.
+        Load the model from the specified path, deserializing it from its JSON string
+        representation and returning a GroupedProphet instance.
+
         :param path: File system path of a saved GroupedProphet model.
         :return: An instance of GroupedProphet with fit attributes applied.
         """
 
-        if not os.path.isfile(path):
-            raise DivinerException(
-                f"There is no valid model artifact at the specified path: {path}"
-            )
-        with open(path, "r") as f:
-            raw_model = f.read()
+        attr_dict = grouped_model_from_json(path)
+        init_args = inspect.signature(cls.__init__).parameters.keys()
+        init_cls = [
+            attr_dict[arg] for arg in init_args if arg not in {"self", "kwargs"}
+        ]
+        instance = cls(*init_cls)
+        for key, value in attr_dict.items():
+            if key not in init_args:
+                setattr(instance, key, value)
 
-        return grouped_model_from_json(raw_model, "diviner", "GroupedProphet")
+        return instance
