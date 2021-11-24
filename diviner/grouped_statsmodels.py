@@ -10,14 +10,14 @@ from diviner.config.grouped_statsmodels.statsmodels_config import (
 from diviner.data.pandas_group_generator import PandasGroupGenerator
 from diviner.data.utils.dataframe_utils import apply_datetime_index_to_groups
 from diviner.utils.common import (
-    validate_keys_in_df,
+    _validate_keys_in_df,
     validate_prediction_config_df,
-    restructure_fit_payload,
+    _restructure_fit_payload,
     generate_forecast_horizon_series,
     convert_forecast_horizon_series_to_df,
-    restructure_predictions,
-    fit_check,
-    model_init_check,
+    _restructure_predictions,
+    _fit_check,
+    _model_init_check,
 )
 from diviner.scoring.statsmodels_scoring import _extract_statsmodels_metrics
 from diviner.utils.common import create_reporting_df
@@ -99,7 +99,7 @@ class GroupedStatsmodels(GroupedForecaster):
 
         return {group_key: model.fit(**kwarg_extract.fit)}
 
-    @model_init_check
+    @_model_init_check
     def fit(self, df, group_key_columns, **kwargs):
         """
         Fits a model for each group defined in the `group_key_columns` of the provided `df`
@@ -128,7 +128,7 @@ class GroupedStatsmodels(GroupedForecaster):
 
         self.group_key_columns = group_key_columns
 
-        validate_keys_in_df(df, self.group_key_columns)
+        _validate_keys_in_df(df, self.group_key_columns)
 
         grouped_data = PandasGroupGenerator(
             self.group_key_columns
@@ -145,7 +145,7 @@ class GroupedStatsmodels(GroupedForecaster):
             for group_key, group_df in dt_indexed_group_data
         ]
 
-        self.model = restructure_fit_payload(fit_model)
+        self.model = _restructure_fit_payload(fit_model)
 
         return self
 
@@ -173,7 +173,7 @@ class GroupedStatsmodels(GroupedForecaster):
         prediction[self.master_key] = prediction.apply(lambda x: group_key, 1)
         return prediction
 
-    @fit_check
+    @_fit_check
     def predict(self, df):
         """
         Method for generating prediction data for each group within the model.
@@ -205,17 +205,17 @@ class GroupedStatsmodels(GroupedForecaster):
 
         processing_data = PandasGroupGenerator(
             self.group_key_columns
-        )._create_master_key_column(df)
+        )._add_master_key_column(df)
 
         prediction_collection = [
             self._predict_single_group(row) for idx, row in processing_data.iterrows()
         ]
 
-        return restructure_predictions(
+        return _restructure_predictions(
             prediction_collection, self.group_key_columns, self.master_key
         )
 
-    @fit_check
+    @_fit_check
     def get_metrics(self, metrics=None, warning=False):
         """
         Retrieves the fit metrics from each grouped model and restructures them into a Pandas
@@ -239,7 +239,7 @@ class GroupedStatsmodels(GroupedForecaster):
             metric_extract, self.master_key, self.group_key_columns
         )
 
-    @fit_check
+    @_fit_check
     def get_model_params(self):
         """
         Extracts the fitted parameters from the model. This will only extract each model's
@@ -257,7 +257,7 @@ class GroupedStatsmodels(GroupedForecaster):
             model_params, self.master_key, self.group_key_columns
         )
 
-    @fit_check
+    @_fit_check
     def forecast(self, horizon: int, frequency: str = None):
         """
         Generates a forecast of predicted values that starts at the next frequency point after
@@ -292,7 +292,7 @@ class GroupedStatsmodels(GroupedForecaster):
 
         return self.predict(group_prediction_collection)
 
-    @fit_check
+    @_fit_check
     def save(self, path: str):
         """
         Save an instance of GroupedStatsmodels to storage. The internal type of each group's model

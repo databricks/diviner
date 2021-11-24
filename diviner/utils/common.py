@@ -119,7 +119,7 @@ def _validate_keys_in_df(df, key_columns: Tuple):
 
 def validate_prediction_config_df(df, key_columns: Tuple):
 
-    validate_keys_in_df(df, key_columns)
+    _validate_keys_in_df(df, key_columns)
     columns_set = set(df.columns)
     validation = {PREDICT_START_COL, PREDICT_END_COL}
     if not validation.issubset(columns_set):
