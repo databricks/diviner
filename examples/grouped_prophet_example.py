@@ -38,7 +38,7 @@ if __name__ == "__main__":
     grouped_model.save(path="/tmp/grouped_prophet.gpm")
 
     # Load the model from the local storage location
-    retrieved_model = GroupedProphet().load(save_path)
+    retrieved_model = GroupedProphet.load(save_path)
 
     # Score the model and print the results
     model_scores = retrieved_model.cross_validate_and_score(

@@ -47,14 +47,21 @@ def _restructure_predictions(prediction_dfs, key_columns, master_key):
     :param prediction_dfs: The per-group dataframes of forecasted predictions
     :param key_columns: Names of the grouping key columns that were defined during training
     :param master_key: The master grouping key column name
-    :return: A dataframe of all predictions with grouping keys added as columns
+    :return: A dataframe of all predictions with grouping key columns and index values
+             added as reference columns
     """
 
     prediction_output = pd.concat(prediction_dfs).reset_index(drop=True)
     prediction_output[key_columns] = pd.DataFrame(
         prediction_output[master_key].tolist(), index=prediction_output.index
     )
-    reordered = _reorder_cols(prediction_output, key_columns, master_key)
+    prediction_output.insert(
+        0,
+        f"{master_key}_columns",
+        prediction_output.apply(lambda x: key_columns, axis=1),
+    )
+    reordered = _reorder_cols(prediction_output, key_columns, f"{master_key}_columns")
+    reordered.drop(columns=[master_key], axis=1, inplace=True)
     return reordered
 
 

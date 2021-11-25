@@ -6,6 +6,7 @@ from prophet import Prophet
 from diviner.exceptions import DivinerException
 from diviner.model.base_model import GroupedForecaster
 from diviner.data.pandas_group_generator import PandasGroupGenerator
+from diviner.scoring.prophet_cross_validate import group_cross_validation, group_performance_metrics
 from diviner.utils.prophet_utils import (
     generate_future_dfs,
     _cross_validate_and_score_model,
@@ -180,6 +181,59 @@ class GroupedProphet(GroupedForecaster):
         ).generate_processing_groups(df)
 
         return self._run_predictions(grouped_data)
+
+    @_fit_check
+    def cross_validation(self, horizon, period=None, initial=None, parallel=None, cutoffs=None):
+        """
+        Utility method for generating the cross validation dataset for each grouping key.
+        This is a wrapper around `prophet.diagnostics.cross_validation()` and uses the
+        same signature arguments as that function. It applies each globally to all groups.
+        note: the output of this will be a Pandas DataFrame for each grouping key per cutoff
+        boundary in the datetime series. The output of this function will be many times larger than
+        the original input data utilized for training of the model.
+
+        :param horizon: pd.Timedelta formatted string (i.e. "14 days" or "18 hours") to define the
+                        amount of time to utilize for a validation set to be created.
+        :param period: the periodicity of how often a windowed validation will occur. Default is
+                        0.5 * horizon value.
+        :param initial: The minimum amount of training data to include in the first cross validation
+                        window.
+        :param parallel: mode of computing cross validation statistics. (None, processes, or threads)
+        :param cutoffs: List of pd.Timestamp values that specify cutoff overrides to be used in
+                        conducting cross validation.
+        :return: Dictionary of {group_key: cross validation Pandas DataFrame}
+        """
+        return group_cross_validation(self.model, horizon, period, initial, parallel, cutoffs)
+
+    @_fit_check
+    def performance_metrics(self, cv_results, metrics=None, rolling_window=0.1, monthly=False):
+        """
+            Model debugging utility function for evaluating performance metrics from the grouped
+            cross validation extract.
+            This will output a metric table for each time boundary from cross validation, for
+            each model.
+            note: This output will be very large and is intended to be used as a debugging
+            tool only.
+
+            :param cv_results: The output return of `group_cross_validation`
+            :param metrics: (Optional) overrides (subtractive) for metrics to generate for this
+                            function's output.
+                            note: see supported metrics in Prophet documentation:
+                            (https://facebook.github.io/prophet/docs/diagnostics.html \
+                            #cross-validation)
+                            note: any model in the collection that was fit with the argument
+                            `uncertainty_samples` set to '0' will have the metric 'coverage'
+                            removed from evaluation due to the fact that `yhat_error` values are
+                            not calculated with that configuration of that parameter.
+            :param rolling_window: Defines how much data to use in each rolling window as a
+                                   range of [0, 1] for computing the performance metrics.
+            :param monthly: If set to true, will collate the windows to ensure that horizons
+                            are computed as number of months from the cutoff date. Only useful
+                            for date data that has yearly seasonality associated with calendar
+                            day of month.
+            :return: Dictionary of {group_key: performance metrics per window Pandas DataFrame}
+            """
+        return group_performance_metrics(cv_results, self.model, metrics, rolling_window, monthly)
 
     @_fit_check
     def cross_validate_and_score(
