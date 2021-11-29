@@ -3,8 +3,8 @@ Test module for evaluating functionality within `diviner.utils.common`
 """
 import pytest
 import pandas as pd
-from diviner.utils.common import _validate_keys_in_df
-from diviner.exceptions import DivinerException
+from diviner.v1.utils.common import _validate_keys_in_df
+from diviner.v1.exceptions import DivinerException
 
 
 def generate_sample():

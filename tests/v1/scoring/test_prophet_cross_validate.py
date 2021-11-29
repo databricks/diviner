@@ -1,6 +1,6 @@
-from diviner.grouped_prophet import GroupedProphet
-from diviner.scoring import prophet_cross_validate
-from tests import data_generator
+from diviner.v1.grouped_prophet import GroupedProphet
+from diviner.v1.scoring import prophet_cross_validate
+from tests.v1 import data_generator
 import pytest
 
 
@@ -55,3 +55,36 @@ def test_group_performance_metrics():
 
     assert len(set(metric_results.keys())) == 4
     assert set(metrics).issubset(set(first_result.columns))
+
+
+def test_backtesting_cross_validation():
+    train = data_generator.generate_test_data(2, 4, 1000, "2020-01-01", 1)
+    model = GroupedProphet(n_changepoints=10, uncertainty_samples=0).fit(
+        train.df, train.key_columns
+    )
+
+    cv_results = model.cross_validate(
+        horizon="30 days", period="180 days", initial="365 days", parallel="processes"
+    )
+    for entries in cv_results.values():
+        assert len(entries) == 120
+        assert {row > 0 for row in entries["yhat"]}
+
+
+def test_manual_performance_metrics_execution():
+    train = data_generator.generate_test_data(2, 4, 1000, "2020-01-01", 1)
+    model = GroupedProphet(n_changepoints=10, uncertainty_samples=0).fit(
+        train.df, train.key_columns
+    )
+
+    cv_results = model.cross_validate(
+        horizon="30 days", period="180 days", initial="365 days", parallel="processes"
+    )
+    performance_metrics = model.calculate_performance_metrics(cv_results=cv_results)
+
+    assert len(performance_metrics.keys()) == 4
+
+    metrics = {"mse", "rmse", "mae", "mape", "mdape", "smape"}
+    for entries in performance_metrics.values():
+        for metric in metrics:
+            assert {row > 0 for row in entries[metric]}

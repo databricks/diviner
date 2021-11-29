@@ -1,5 +1,6 @@
-from tests import data_generator
+from tests.v1 import data_generator
 from diviner import GroupedProphet
+from diviner.v1.exceptions import DivinerException
 from prophet import Prophet
 from datetime import timedelta
 import os
@@ -11,6 +12,25 @@ def _get_individual_model(model, index):
 
     _model_key = list(model.model.keys())[index]
     return model.model[_model_key]
+
+
+def test_model_raises_if_already_fit():
+    train = data_generator.generate_test_data(2, 1, 1000, "2020-01-01", 1)
+    model = GroupedProphet().fit(train.df, train.key_columns)
+    with pytest.raises(
+        DivinerException,
+        match="The model has already been fit. Create a new instance to fit the model again.",
+    ):
+        model.fit(train.df, train.key_columns)
+
+
+def test_model_raises_if_not_fit():
+    model = GroupedProphet()
+    with pytest.raises(
+        DivinerException,
+        match="The model has not been fit. Please fit the model first.",
+    ):
+        model.forecast(30, "days")
 
 
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")

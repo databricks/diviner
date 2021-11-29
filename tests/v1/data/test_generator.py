@@ -1,6 +1,6 @@
 import pandas as pd
-from diviner.data.pandas_group_generator import PandasGroupGenerator
-from diviner.exceptions import DivinerException
+from diviner.v1.data.pandas_group_generator import PandasGroupGenerator
+from diviner.v1.exceptions import DivinerException
 import pytest
 
 
@@ -18,7 +18,9 @@ def generate_sample():
 def test_pandas_group_generator_master_key_creation():
     data = generate_sample()
     grouping_keys = ("a", "b")
-    master_key_add = PandasGroupGenerator(grouping_keys)._add_master_key_column(data)
+    master_key_add = PandasGroupGenerator(grouping_keys)._get_df_with_master_key_column(
+        data
+    )
 
     for i in range(len(master_key_add)):
         row = master_key_add.iloc[i]
@@ -51,7 +53,7 @@ def test_pandas_group_data_generator_invalid_group_keys():
 
     with pytest.raises(
         DivinerException,
-        match="Argument 'group_key_columns' tuple must contain at "
+        match="Argument '_group_key_columns' tuple must contain at "
         "least one string entry.",
     ):
         PandasGroupGenerator(grouping_keys).generate_processing_groups(data)

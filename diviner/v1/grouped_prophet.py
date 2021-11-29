@@ -1,28 +1,28 @@
 import inspect
 import os
+import json
+from ast import literal_eval
 from copy import deepcopy
 from prophet import Prophet
+from prophet.serialize import model_from_json, model_to_json
 
-from diviner.exceptions import DivinerException
-from diviner.model.base_model import GroupedForecaster
-from diviner.data.pandas_group_generator import PandasGroupGenerator
-from diviner.scoring.prophet_cross_validate import group_cross_validation, group_performance_metrics
-from diviner.utils.prophet_utils import (
+from diviner.v1.exceptions import DivinerException
+from diviner.v1.model.base_model import GroupedForecaster, GROUPED_MODEL_BASE_ATTRIBUTES
+from diviner.v1.data.pandas_group_generator import PandasGroupGenerator
+from diviner.v1.scoring.prophet_cross_validate import (
+    group_cross_validation,
+    group_performance_metrics,
+)
+from diviner.v1.utils.prophet_utils import (
     generate_future_dfs,
     _cross_validate_and_score_model,
     _create_reporting_df,
     _extract_params,
 )
-from diviner.utils.common import (
+from diviner.v1.utils.common import (
     _restructure_fit_payload,
-    _fit_check,
-    _model_init_check,
     _validate_keys_in_df,
     _restructure_predictions,
-)
-from diviner.serialize.prophet_serializer import (
-    grouped_model_from_json,
-    grouped_model_to_json,
 )
 
 
@@ -47,18 +47,17 @@ class GroupedProphet(GroupedForecaster):
         :param kwargs: Prophet class configuration overrides
         """
         super().__init__()
-        self.prophet_init_kwargs = kwargs
-        self.master_key = "grouping_key"
+        self._prophet_init_kwargs = kwargs
+        self._master_key = "grouping_key"
 
     def _fit_prophet(self, group_key, df, **kwargs):
 
-        return {group_key: Prophet(**self.prophet_init_kwargs).fit(df, **kwargs)}
+        return {group_key: Prophet(**self._prophet_init_kwargs).fit(df, **kwargs)}
 
-    @_model_init_check
     def fit(self, df, group_key_columns, **kwargs):
         """
         Main fit method for executing a Prophet .fit() on the submitted DataFrame, grouped by
-        the `group_key_columns` submitted.
+        the `_group_key_columns` submitted.
         When initiated, the input DataFrame (`df`) will be split into an iterable collection
         that represents a 'core' series to be fit against.
 
@@ -74,7 +73,7 @@ class GroupedProphet(GroupedForecaster):
         help(pystan.StanModel.optimizing)
         ```
 
-        :param df: Normalized pandas DataFrame containing group_key_columns, a 'ds' column, and
+        :param df: Normalized pandas DataFrame containing _group_key_columns, a 'ds' column, and
                    a target 'y' column.
                    An example normalized data set to be used in this method:
 
@@ -85,7 +84,7 @@ class GroupedProphet(GroupedForecaster):
 
         :param group_key_columns: The columns in the `df` argument that define, in aggregate, a
                                   unique time series entry. For example, with the DataFrame
-                                  referenced in the `df` param, group_key_columns could be:
+                                  referenced in the `df` param, _group_key_columns could be:
                                   ('region', 'zone')
                                   Specifying an incomplete grouping collection, while valid
                                   through this API (i.e., ('region')), can cause serious problems
@@ -99,13 +98,13 @@ class GroupedProphet(GroupedForecaster):
                         #hyperparameter-tuning)
         :return: object instance (self) of GroupedProphet
         """
+        self._model_init_check()
+        self._group_key_columns = group_key_columns
 
-        self.group_key_columns = group_key_columns
-
-        _validate_keys_in_df(df, self.group_key_columns)
+        _validate_keys_in_df(df, self._group_key_columns)
 
         grouped_data = PandasGroupGenerator(
-            self.group_key_columns
+            self._group_key_columns
         ).generate_processing_groups(df)
 
         fit_model = [
@@ -135,7 +134,7 @@ class GroupedProphet(GroupedForecaster):
         model = deepcopy(self.model[group_key])
         raw_prediction = model.predict(df)
         raw_prediction.insert(
-            0, self.master_key, raw_prediction.apply(lambda x: group_key, axis=1)
+            0, self._master_key, raw_prediction.apply(lambda x: group_key, axis=1)
         )
 
         return raw_prediction
@@ -153,10 +152,9 @@ class GroupedProphet(GroupedForecaster):
         ]
 
         return _restructure_predictions(
-            predictions, self.group_key_columns, self.master_key
+            predictions, self._group_key_columns, self._master_key
         )
 
-    @_fit_check
     def predict(self, df):
         """
         Main prediction method for generating forecast values based on the group keys and dates
@@ -173,17 +171,18 @@ class GroupedProphet(GroupedForecaster):
                    forecast for each group.
         :return: A consolidated (unioned) single DataFrame of all groups forecasts
         """
-
-        _validate_keys_in_df(df, self.group_key_columns)
+        self._fit_check()
+        _validate_keys_in_df(df, self._group_key_columns)
 
         grouped_data = PandasGroupGenerator(
-            self.group_key_columns
+            self._group_key_columns
         ).generate_processing_groups(df)
 
         return self._run_predictions(grouped_data)
 
-    @_fit_check
-    def cross_validation(self, horizon, period=None, initial=None, parallel=None, cutoffs=None):
+    def cross_validate(
+        self, horizon, period=None, initial=None, parallel=None, cutoffs=None
+    ):
         """
         Utility method for generating the cross validation dataset for each grouping key.
         This is a wrapper around `prophet.diagnostics.cross_validation()` and uses the
@@ -203,10 +202,12 @@ class GroupedProphet(GroupedForecaster):
                         conducting cross validation.
         :return: Dictionary of {group_key: cross validation Pandas DataFrame}
         """
-        return group_cross_validation(self.model, horizon, period, initial, parallel, cutoffs)
+        self._fit_check()
+        return group_cross_validation(self, horizon, period, initial, parallel, cutoffs)
 
-    @_fit_check
-    def performance_metrics(self, cv_results, metrics=None, rolling_window=0.1, monthly=False):
+    def calculate_performance_metrics(
+        self, cv_results, metrics=None, rolling_window=0.1, monthly=False
+    ):
         """
             Model debugging utility function for evaluating performance metrics from the grouped
             cross validation extract.
@@ -233,9 +234,11 @@ class GroupedProphet(GroupedForecaster):
                             day of month.
             :return: Dictionary of {group_key: performance metrics per window Pandas DataFrame}
             """
-        return group_performance_metrics(cv_results, self.model, metrics, rolling_window, monthly)
+        self._fit_check()
+        return group_performance_metrics(
+            cv_results, self, metrics, rolling_window, monthly
+        )
 
-    @_fit_check
     def cross_validate_and_score(
         self,
         horizon,
@@ -281,6 +284,7 @@ class GroupedProphet(GroupedForecaster):
         :return: A consolidated Pandas DataFrame containing the specified metrics
                  to test as columns with each row representing a group.
         """
+        self._fit_check()
         scores = {
             group_key: _cross_validate_and_score_model(
                 model, horizon, period, initial, parallel, cutoffs, metrics, **kwargs
@@ -288,9 +292,8 @@ class GroupedProphet(GroupedForecaster):
             for group_key, model in self.model.items()
         }
 
-        return _create_reporting_df(scores, self.master_key, self.group_key_columns)
+        return _create_reporting_df(scores, self._master_key, self._group_key_columns)
 
-    @_fit_check
     def extract_model_params(self):
         """
         Utility method for extracting all model parameters from each model within the processed
@@ -299,15 +302,14 @@ class GroupedProphet(GroupedForecaster):
         :return: A consolidated Pandas DataFrame containing the model parameters as columns
                  with each row entry representing a group.
         """
-
+        self._fit_check()
         model_params = {
             group_key: _extract_params(model) for group_key, model in self.model.items()
         }
         return _create_reporting_df(
-            model_params, self.master_key, self.group_key_columns
+            model_params, self._master_key, self._group_key_columns
         )
 
-    @_fit_check
     def forecast(self, horizon: int, frequency: str):
         """
         Forecasting method that will automatically generate forecasting values where the 'ds'
@@ -332,12 +334,11 @@ class GroupedProphet(GroupedForecaster):
           https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
         :return: A consolidated (unioned) single DataFrame of forecasts for all groups
         """
-
+        self._fit_check()
         grouped_data = generate_future_dfs(self.model, horizon, frequency)
 
         return self._run_predictions(grouped_data)
 
-    @_fit_check
     def save(self, path: str):
         """
         Serialize the model as a JSON string and write it to the provided path.
@@ -346,13 +347,12 @@ class GroupedProphet(GroupedForecaster):
         :param path: Location on the file system to store the model.
         :return: None
         """
-
+        self._fit_check()
         directory = os.path.dirname(path)
 
-        if not os.path.exists(directory):
-            os.mkdir(directory)
+        os.makedirs(directory, exist_ok=True)
 
-        model_as_json = grouped_model_to_json(self)
+        model_as_json = self._grouped_model_to_json()
 
         with open(path, "w") as f:
             f.write(model_as_json)
@@ -367,7 +367,7 @@ class GroupedProphet(GroupedForecaster):
         :return: An instance of GroupedProphet with fit attributes applied.
         """
 
-        attr_dict = grouped_model_from_json(path)
+        attr_dict = cls._grouped_model_from_json(path)
         init_args = inspect.signature(cls.__init__).parameters.keys()
         init_cls = [
             attr_dict[arg] for arg in init_args if arg not in {"self", "kwargs"}
@@ -378,3 +378,58 @@ class GroupedProphet(GroupedForecaster):
                 setattr(instance, key, value)
 
         return instance
+
+    def _grouped_model_to_json(self):
+        """
+        Serialization helper to convert a GroupedProphet instance to json for saving to disk.
+
+        :return: serialized json string of the model's attributes
+        """
+
+        model_dict = self._grouped_model_to_dict()
+        for key in vars(self).keys():
+            if key != "model":
+                model_dict[key] = getattr(self, key)
+
+        return json.dumps(model_dict)
+
+    def _grouped_model_to_dict(self):
+
+        model_dict = {
+            attr: getattr(self, attr) for attr in GROUPED_MODEL_BASE_ATTRIBUTES
+        }
+        model_dict["model"] = {
+            str(master_key): model_to_json(model)
+            for master_key, model in self.model.items()
+        }
+        return model_dict
+
+    @classmethod
+    def _grouped_model_from_dict(cls, raw_model):
+
+        deser_model_payload = {
+            literal_eval(master_key): model_from_json(payload)
+            for master_key, payload in raw_model.items()
+        }
+        return deser_model_payload
+
+    @classmethod
+    def _grouped_model_from_json(cls, path):
+        """
+        Helper function to load the grouped model structure from serialized json and deserialize
+        the Prophet instances.
+
+        :param path: The storage location of a saved GroupedProphet object
+        :return: Dictionary of instance attributes
+        """
+        if not os.path.isfile(path):
+            raise DivinerException(
+                f"There is no valid model saved at the specified path: {path}"
+            )
+        with open(path, "r") as f:
+            raw_model = json.load(f)
+
+        model_deser = cls._grouped_model_from_dict(raw_model["model"])
+        raw_model["model"] = model_deser
+
+        return raw_model

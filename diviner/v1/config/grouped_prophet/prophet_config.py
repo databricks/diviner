@@ -39,7 +39,7 @@ def _get_extract_params():
     prophet_signature = [
         attr
         for attr, value in inspect.getmembers(Prophet())
-        if not callable(value) and not attr.startswith("__") and not attr in denylist
+        if not callable(value) and not attr.startswith("_") and not attr in denylist
     ]
 
     return prophet_signature

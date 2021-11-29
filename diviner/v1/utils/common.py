@@ -1,5 +1,5 @@
 from typing import Tuple, Dict, List
-from diviner.exceptions import DivinerException
+from diviner.v1.exceptions import DivinerException
 import pandas as pd
 
 
@@ -58,50 +58,12 @@ def _restructure_predictions(prediction_dfs, key_columns, master_key):
     prediction_output.insert(
         0,
         f"{master_key}_columns",
-        prediction_output.apply(lambda x: key_columns, axis=1),
+        prediction_output.apply(lambda x: tuple(key_columns), axis=1),
     )
     reordered = _reorder_cols(prediction_output, key_columns, f"{master_key}_columns")
-    reordered.drop(columns=[master_key], axis=1, inplace=True)
-    return reordered
-
-
-def _fit_check(fn):
-    """
-    Model fit validation decorator. Performs a check to ensure that the model has been fit in
-    order to perform actions that require a collection of models to have been fit.
-
-    :param fn: Wrapper for methods that require a fit collection of models to be set.
-    :return: An instance method
-    """
-
-    def _fit_check(self, *args, **kwargs):
-        if not self.model:
-            raise DivinerException(
-                "The model has not been fit. Please fit the model first."
-            )
-        return fn(self, *args, **kwargs)
-
-    return _fit_check
-
-
-def _model_init_check(fn):
-    """
-    Model initialization validation decorator. Ensures that the model hasn't already been fit
-    when running certain methods in the GroupedProphet object instance.
-
-    :param fn: Wrapper for methods that require a state where .fit() has not been already executed
-               on the instance.
-    :return: An instance method
-    """
-
-    def model_init_check(self, *args, **kwargs):
-        if self.model:
-            raise DivinerException(
-                "The model has already been fit. Create a new instance to fit the model again."
-            )
-        return fn(self, *args, **kwargs)
-
-    return model_init_check
+    cleaned = reordered.copy()
+    cleaned.drop(columns=[master_key], axis=1, inplace=True)
+    return cleaned
 
 
 def _validate_keys_in_df(df, key_columns: Tuple):

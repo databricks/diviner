@@ -4,7 +4,7 @@ Serialization and Deserialization tests for GroupedProphet model type
 from copy import deepcopy
 import os
 from diviner import GroupedProphet
-from tests import data_generator
+from tests.v1 import data_generator
 
 
 def test_prophet_save_load_override_object():
@@ -16,7 +16,7 @@ def test_prophet_save_load_override_object():
     model1 = GroupedProphet().fit(train1.df, train1.key_columns)
     model2 = GroupedProphet().fit(train2.df, train2.key_columns)
 
-    model1_group_keys = deepcopy(model1.group_key_columns)
+    model1_group_keys = deepcopy(model1._group_key_columns)
     model1_model = deepcopy(model1.model)
 
     # save model 2
@@ -26,6 +26,6 @@ def test_prophet_save_load_override_object():
     # use model1 object to load model2
     reloaded = model1.load(save_path)
 
-    assert set(reloaded.group_key_columns) != set(model1_group_keys)
+    assert set(reloaded._group_key_columns) != set(model1_group_keys)
     assert reloaded.model.keys() == model2.model.keys()
     assert reloaded.model.keys() != model1_model.keys()

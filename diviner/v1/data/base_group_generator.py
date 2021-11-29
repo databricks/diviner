@@ -6,7 +6,7 @@ of discrete time series so that forecasting models can be trained on each group.
 """
 import abc
 from typing import Tuple
-from diviner.exceptions import DivinerException
+from diviner.v1.exceptions import DivinerException
 
 
 class BaseGroupGenerator(abc.ABC):
@@ -27,7 +27,7 @@ class BaseGroupGenerator(abc.ABC):
         The primary purpose of the children of this class is to generate a dictionary of:
         {<group_key> : <DataFrame with unique univariate series>}.
         The `group_key` element is constructed as a tuple of the values within the columns
-        specified by `group_key_columns` in this class constructor.
+        specified by `_group_key_columns` in this class constructor.
 
         For example, with a normalized data set provided of:
         |ds          |y       |group1    |group2    |
@@ -57,22 +57,22 @@ class BaseGroupGenerator(abc.ABC):
         """
         if not group_key_columns or len(group_key_columns) == 0:
             raise DivinerException(
-                "Argument 'group_key_columns' tuple must contain at "
+                "Argument '_group_key_columns' tuple must contain at "
                 "least one string entry."
             )
 
-        self.group_key_columns = group_key_columns
-        self.master_group_key = "grouping_key"
+        self._group_key_columns = group_key_columns
+        self._master_group_key = "grouping_key"
 
     @abc.abstractmethod
     def generate_processing_groups(self, df):
         """
         Abstract method for the generation of processing execution groups for individual models.
         Implementations of this method should generate a processing collection that is a relation
-        between the unique combinations of `group_key_columns` values, generated as a
+        between the unique combinations of `_group_key_columns` values, generated as a
         `master_group_key` entry that defines a specific datetime series for forecasting.
 
-        :param df: The user-input normalized DataFrame with group_key_columns
+        :param df: The user-input normalized DataFrame with _group_key_columns
         :return: A list of dictionaries of {group_key: <group's univariate series data>} structure
         for isolated processing by the model APIs.
         For example: with a normalized dataframe input of:

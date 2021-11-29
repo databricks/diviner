@@ -5,6 +5,9 @@ grouped modeling application.
 import abc
 from collections import defaultdict
 from typing import Tuple
+from diviner.v1.exceptions import DivinerException
+
+GROUPED_MODEL_BASE_ATTRIBUTES = ["_group_key_columns", "_master_key"]
 
 
 class GroupedForecaster(abc.ABC):
@@ -21,9 +24,9 @@ class GroupedForecaster(abc.ABC):
     """
 
     def __init__(self):
-        self.group_key_columns = None
+        self._group_key_columns = None
         self.model = defaultdict(dict)
-        self.master_key = None
+        self._master_key = None
 
     @abc.abstractmethod
     def fit(self, df, group_key_columns: Tuple[str], **kwargs):
@@ -93,3 +96,24 @@ class GroupedForecaster(abc.ABC):
         :return: An instance of the model, attributes set according to what was in the
                  serialized state of the model.
         """
+
+    def _fit_check(self):
+        """
+        Model fit validation decorator. Performs a check to ensure that the model has been fit in
+        order to perform actions that require a collection of models to have been fit.
+
+        """
+        if not self.model:
+            raise DivinerException(
+                "The model has not been fit. Please fit the model first."
+            )
+
+    def _model_init_check(self):
+        """
+        Model initialization validation decorator. Ensures that the model hasn't already been fit
+        when running certain methods in the GroupedProphet object instance.
+        """
+        if self.model:
+            raise DivinerException(
+                "The model has already been fit. Create a new instance to fit the model again."
+            )
