@@ -29,9 +29,9 @@ if __name__ == "__main__":
     grouping_key_columns = generated_data.key_columns
 
     # Create a GroupedStatsmodels ExponentialSmoothing model instance
-    grouped_model = GroupedStatsmodels(model_type="ExponentialSmoothing", endog="y", time_col="ds").fit(
-        training_data, grouping_key_columns
-    )
+    grouped_model = GroupedStatsmodels(
+        model_type="ExponentialSmoothing", endog="y", time_col="ds"
+    ).fit(training_data, grouping_key_columns)
 
     # Save the model to the local file system
     save_path = "/tmp/grouped_exponential_smoothing.gsm"
