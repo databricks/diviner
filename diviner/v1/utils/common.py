@@ -21,7 +21,7 @@ def _restructure_fit_payload(train_results: List[Dict[str, any]]) -> Dict[str, a
 
 
 def _reorder_cols(
-    df, key_columns: Tuple[str], master_grouping_key: str
+    df, key_columns: Tuple[str], master_grouping_key: tuple
 ) -> pd.DataFrame:
     """
     Helper function for creating a user-friendly schema structure for the output prediction
@@ -114,6 +114,12 @@ def create_reporting_df(extract_dict, master_key, group_key_columns):
     base_df[master_key] = base_df.index.to_numpy()
     base_df.index.names = group_key_columns
     extracted_df = base_df.reset_index(inplace=False)
+    extracted_df.insert(
+        0,
+        f"{master_key}_columns",
+        extracted_df.apply(lambda x: tuple(group_key_columns), axis=1),
+    )
+    extracted_df.drop(columns=[master_key], axis=1, inplace=True)
     return extracted_df
 
 

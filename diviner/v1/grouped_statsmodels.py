@@ -1,6 +1,8 @@
 import pandas as pd
 import inspect
 import os
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
+import warnings
 
 from diviner.v1.model.base_model import GroupedForecaster
 from diviner.v1.config.grouped_statsmodels.statsmodels_config import (
@@ -44,6 +46,7 @@ class GroupedStatsmodels(GroupedForecaster):
         time_col: str,
         exog_column=None,
         predict_col="forecast",
+        suppress_logs=True,
     ):
         """
         :param model_type: String value of statsmodels model type to use. Examples:
@@ -76,6 +79,18 @@ class GroupedStatsmodels(GroupedForecaster):
         self.exog_column = exog_column
         self.max_datetime_per_group = None
         self.predict_col = predict_col
+        self.suppress_logs = suppress_logs
+        if self.suppress_logs:
+            warnings.filterwarnings("ignore")
+
+    @staticmethod
+    @contextmanager
+    def suppress_fit_warnings():
+        with open(os.devnull, "w") as null_file:
+            with redirect_stdout(null_file) as stdout, redirect_stderr(
+                null_file
+            ) as stderr:
+                yield stdout, stderr
 
     def _fit_model(self, group_key, df, **kwargs):
         """
@@ -95,7 +110,17 @@ class GroupedStatsmodels(GroupedForecaster):
         else:
             model = self.model_clazz(endog, **kwarg_extract.clazz)
 
-        return {group_key: model.fit(**kwarg_extract.fit)}
+        if (
+            self.suppress_logs
+            and "disp" in inspect.signature(model.fit).parameters.keys()
+        ):
+            kwarg_extract.fit["disp"] = False
+
+        if self.suppress_logs:
+            with self.suppress_fit_warnings():
+                return {group_key: model.fit(**kwarg_extract.fit)}
+        else:
+            return {group_key: model.fit(**kwarg_extract.fit)}
 
     def fit(self, df, group_key_columns, **kwargs):
         """
@@ -155,16 +180,16 @@ class GroupedStatsmodels(GroupedForecaster):
         :return: A Pandas DataFrame of predictions for an individual group.
         """
         group_key = row_entry[self._master_key]
-        model = self.model[group_key]._results
+        model = self.model[group_key]
         start = row_entry[PREDICT_START_COL]
         end = row_entry[PREDICT_END_COL]
         if self.model_type == "VAR":
             units = _resolve_forecast_duration_var_model(row_entry)
-            prediction = pd.DataFrame(model.forecast(model.endog, units))
+            raw_prediction = pd.DataFrame(model.forecast(model.endog, units))
         else:
-            prediction = pd.DataFrame(model.predict(start=start, end=end))
-        prediction_name = prediction.columns[0]
-        prediction = prediction.rename({prediction_name: self.predict_col}, axis=1)
+            raw_prediction = pd.DataFrame(model.predict(start=start, end=end))
+        prediction_name = raw_prediction.columns[0]
+        prediction = raw_prediction.rename({prediction_name: self.predict_col}, axis=1)
         prediction.index.name = self.time_col
         prediction = prediction.reset_index()
         prediction[self._master_key] = prediction.apply(lambda x: group_key, 1)

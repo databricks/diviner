@@ -62,36 +62,46 @@ def assemble_prediction_df(train_data, start, end):
     return pd.DataFrame.from_records(prediction_configuration)
 
 
+# @pytest.mark.parametrize(
+#     "method",
+#     [
+#         ("get_model_params", None),
+#         ("get_metrics", None),
+#         ("save", "/"),
+#         ("predict", "placeholder"),
+#         ("forecast", 1),
+#     ],
+# )
 @pytest.mark.parametrize(
-    "method",
-    [
+    ("method", "value"),
+    (
         ("get_model_params", None),
         ("get_metrics", None),
         ("save", "/"),
         ("predict", "placeholder"),
         ("forecast", 1),
-    ],
+    ),
 )
-def test_statsmodels_fit_checks(method):
+def test_statsmodels_fit_checks(method, value):
 
     model = GroupedStatsmodels(model_type="AutoReg", endog="y", time_col="ds")
 
     with pytest.raises(DivinerException, match="The model has not been fit."):
-        if method[1]:
-            getattr(model, method[0])(method[1])
+        if value:
+            getattr(model, method)(value)
         else:
-            getattr(model, method[0])()
+            getattr(model, method)()
 
 
-@pytest.mark.parametrize("method", [("fit", ["placeholder", ("a", "b")])])
-def test_statsmodels_init_checks(method):
+@pytest.mark.parametrize(("method", "value"), (("fit", ["a", "b"]),))
+def test_statsmodels_init_checks(method, value):
     train = data_generator.generate_test_data(2, 2, 1000, "2020-02-02", 1)
     model = GroupedStatsmodels(model_type="Holt", endog="y", time_col="ds").fit(
         train.df, train.key_columns
     )
 
     with pytest.raises(DivinerException, match="The model has already been fit."):
-        getattr(model, method[0])(*method[1])
+        getattr(model, method)(*value)
 
 
 def test_simple_arima_fit():
@@ -116,7 +126,11 @@ def test_exogeneous_regressor_fit():
 
     with pytest.warns(ConvergenceWarning):
         model = GroupedStatsmodels(
-            model_type="sarimax", endog="y", exog_column="exog", time_col="ds"
+            model_type="sarimax",
+            endog="y",
+            exog_column="exog",
+            time_col="ds",
+            suppress_logs=False,
         ).fit(
             train.df,
             train.key_columns,
@@ -178,7 +192,9 @@ def test_holt_model_fit_and_metrics_gathering():
     train = data_generator.generate_test_data(3, 6, 2000, "2020-01-01", 1)
 
     warnings.simplefilter("always")
-    model = GroupedStatsmodels(model_type="holt", endog="y", time_col="ds").fit(
+    model = GroupedStatsmodels(
+        model_type="holt", endog="y", time_col="ds", suppress_logs=False
+    ).fit(
         train.df,
         train.key_columns,
         damped_trend=True,
