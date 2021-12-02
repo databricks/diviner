@@ -12,8 +12,8 @@ def _validate_metrics(metrics):
             return metrics
         else:
             msg = (
-                f"Metric(s) supplied are invalid: {metrics}. "
-                f"Must be member(s) of: {_STATSMODELS_METRICS}"
+                f"Metrics supplied are invalid: {', '.join(metrics)}. "
+                f"Must be members of: {_STATSMODELS_METRICS}"
             )
             raise DivinerException(msg)
     else:

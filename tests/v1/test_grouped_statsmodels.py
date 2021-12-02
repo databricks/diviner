@@ -5,8 +5,8 @@ import pytest
 import pandas as pd
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 
-from tests.v1 import data_generator
-from diviner.v1.grouped_statsmodels import GroupedStatsmodels
+from tests import data_generator
+from diviner import GroupedStatsmodels
 from diviner.v1.exceptions import DivinerException
 
 
@@ -62,16 +62,6 @@ def assemble_prediction_df(train_data, start, end):
     return pd.DataFrame.from_records(prediction_configuration)
 
 
-# @pytest.mark.parametrize(
-#     "method",
-#     [
-#         ("get_model_params", None),
-#         ("get_metrics", None),
-#         ("save", "/"),
-#         ("predict", "placeholder"),
-#         ("forecast", 1),
-#     ],
-# )
 @pytest.mark.parametrize(
     ("method", "value"),
     (

@@ -13,7 +13,7 @@ def _get_statsmodels_model(model_name: str):
     if model_name_lowered not in list(clazzes.keys()):
         raise DivinerException(
             f"Statsmodels model type '{model_name}' is not a valid model type. "
-            f"Must be one of: {clazzes}"
+            f"Must be one of: {', '.join(list(clazzes.values()))}"
         )
 
     clazz = getattr(statsmodels_api, clazzes[model_name_lowered])
