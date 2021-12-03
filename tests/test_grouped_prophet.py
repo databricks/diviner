@@ -1,8 +1,10 @@
-from tests.v1 import data_generator
+import pandas as pd
+
+from tests import data_generator
 from diviner import GroupedProphet
-from diviner.v1.exceptions import DivinerException
+from diviner.exceptions import DivinerException
 from prophet import Prophet
-from datetime import timedelta
+from datetime import timedelta, datetime
 import os
 import shutil
 import pytest
@@ -136,3 +138,24 @@ def test_prophet_extract_params():
     params = model.extract_model_params()
 
     assert len(params) == 6
+
+
+def test_prophet_with_bad_group_data():
+
+    train = data_generator.generate_test_data(2, 1, 1000, "2020-01-01", 1)
+    train_df = train.df
+    bad_data = pd.DataFrame(
+        {
+            "ds": datetime.strptime("2021-01-01", "%Y-%M-%d"),
+            "y": -500.3,
+            "key1": "bad",
+            "key0": "data",
+        },
+        index=[1000],
+    )
+
+    train_df_add = pd.concat([train_df, bad_data])
+
+    with pytest.warns(RuntimeWarning, match="An error occurred while fitting group"):
+        model = GroupedProphet().fit(train_df_add, train.key_columns)
+    assert ("bad", "data") not in model.model.keys()

@@ -3,23 +3,24 @@ import os
 import json
 from ast import literal_eval
 from copy import deepcopy
+import warnings
 from prophet import Prophet
 from prophet.serialize import model_from_json, model_to_json
 
-from diviner.v1.exceptions import DivinerException
-from diviner.v1.model.base_model import GroupedForecaster, GROUPED_MODEL_BASE_ATTRIBUTES
-from diviner.v1.data.pandas_group_generator import PandasGroupGenerator
-from diviner.v1.scoring.prophet_cross_validate import (
+from diviner.exceptions import DivinerException
+from diviner.model.base_model import GroupedForecaster, GROUPED_MODEL_BASE_ATTRIBUTES
+from diviner.data.pandas_group_generator import PandasGroupGenerator
+from diviner.scoring.prophet_cross_validate import (
     group_cross_validation,
     group_performance_metrics,
 )
-from diviner.v1.utils.prophet_utils import (
+from diviner.utils.prophet_utils import (
     generate_future_dfs,
     _cross_validate_and_score_model,
     _create_reporting_df,
     _extract_params,
 )
-from diviner.v1.utils.common import (
+from diviner.utils.common import (
     _restructure_fit_payload,
     _validate_keys_in_df,
     _restructure_predictions,
@@ -52,7 +53,17 @@ class GroupedProphet(GroupedForecaster):
 
     def _fit_prophet(self, group_key, df, **kwargs):
 
-        return {group_key: Prophet(**self._prophet_init_kwargs).fit(df, **kwargs)}
+        try:
+            return {group_key: Prophet(**self._prophet_init_kwargs).fit(df, **kwargs)}
+        except Exception as e:
+            _warning = (
+                f"An error occurred while fitting group {group_key}. The group model will not "
+                "be included in the model instance. "
+                f"Error: {type(e)} Args: {e.args} {e}",
+                RuntimeWarning,
+            )
+            warnings.warn(*_warning, stacklevel=2)
+            print(f"WARNING: {_warning[0]}")
 
     def fit(self, df, group_key_columns, **kwargs):
         """
@@ -107,9 +118,14 @@ class GroupedProphet(GroupedForecaster):
             self._group_key_columns
         ).generate_processing_groups(df)
 
-        fit_model = [
-            self._fit_prophet(group_key, df, **kwargs) for group_key, df in grouped_data
-        ]
+        # fit_model = [
+        #     self._fit_prophet(group_key, df, **kwargs) for group_key, df in grouped_data
+        # ]
+        fit_model = []
+        for group_key, df in grouped_data:
+            group_model = self._fit_prophet(group_key, df, **kwargs)
+            if group_model:
+                fit_model.append(group_model)
 
         self.model = _restructure_fit_payload(fit_model)
 

@@ -1,6 +1,6 @@
 import pandas as pd
-from diviner.v1.data.pandas_group_generator import PandasGroupGenerator
-from diviner.v1.exceptions import DivinerException
+from diviner.data.pandas_group_generator import PandasGroupGenerator
+from diviner.exceptions import DivinerException
 import pytest
 
 

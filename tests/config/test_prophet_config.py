@@ -1,6 +1,6 @@
 from prophet import Prophet
-from diviner.v1.config.grouped_prophet.prophet_config import _get_extract_params
-from diviner.v1.config.grouped_prophet.utils import prophet_config_utils
+from diviner.config.grouped_prophet.prophet_config import _get_extract_params
+from diviner.config.grouped_prophet.utils import prophet_config_utils
 
 
 def test_base_cv_metrics_extract():

@@ -1,6 +1,6 @@
-from diviner.v1.grouped_prophet import GroupedProphet
-from diviner.v1.scoring import prophet_cross_validate
-from tests.v1 import data_generator
+from diviner.grouped_prophet import GroupedProphet
+from diviner.scoring import prophet_cross_validate
+from tests import data_generator
 import pytest
 
 

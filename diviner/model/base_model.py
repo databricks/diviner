@@ -5,7 +5,7 @@ grouped modeling application.
 import abc
 from collections import defaultdict
 from typing import Tuple
-from diviner.v1.exceptions import DivinerException
+from diviner.exceptions import DivinerException
 
 GROUPED_MODEL_BASE_ATTRIBUTES = ["_group_key_columns", "_master_key"]
 

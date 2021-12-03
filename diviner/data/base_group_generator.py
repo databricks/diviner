@@ -6,7 +6,7 @@ of discrete time series so that forecasting models can be trained on each group.
 """
 import abc
 from typing import Tuple
-from diviner.v1.exceptions import DivinerException
+from diviner.exceptions import DivinerException
 
 
 class BaseGroupGenerator(abc.ABC):

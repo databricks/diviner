@@ -1,5 +1,5 @@
-from diviner.v1.data.base_group_generator import BaseGroupGenerator
-from diviner.v1.utils.common import _validate_keys_in_df
+from diviner.data.base_group_generator import BaseGroupGenerator
+from diviner.utils.common import _validate_keys_in_df
 import pandas as pd
 from typing import Tuple
 

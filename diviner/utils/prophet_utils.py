@@ -1,5 +1,5 @@
-from diviner.v1.config.grouped_prophet.prophet_config import _get_extract_params
-from diviner.v1.config.grouped_prophet.utils import prophet_config_utils
+from diviner.config.grouped_prophet.prophet_config import _get_extract_params
+from diviner.config.grouped_prophet.utils import prophet_config_utils
 from prophet.diagnostics import cross_validation, performance_metrics
 import pandas as pd
 from inspect import signature

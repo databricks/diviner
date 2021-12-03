@@ -4,7 +4,7 @@ Serialization and Deserialization tests for GroupedProphet model type
 from copy import deepcopy
 import os
 from diviner import GroupedProphet
-from tests.v1 import data_generator
+from tests import data_generator
 
 
 def test_prophet_save_load_override_object():

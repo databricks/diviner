@@ -1,5 +1,5 @@
 from typing import Tuple, Dict, List
-from diviner.v1.exceptions import DivinerException
+from diviner.exceptions import DivinerException
 import pandas as pd
 
 
