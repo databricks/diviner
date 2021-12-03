@@ -1,0 +1,6 @@
+numpy
+pandas
+prophet
+
+#Required for testing
+pytest
