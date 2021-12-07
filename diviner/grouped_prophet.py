@@ -49,7 +49,6 @@ class GroupedProphet(GroupedForecaster):
         """
         super().__init__()
         self._prophet_init_kwargs = kwargs
-        self._master_key = "grouping_key"
 
     def _fit_prophet(self, group_key, df, **kwargs):
 

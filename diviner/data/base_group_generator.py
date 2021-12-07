@@ -7,6 +7,7 @@ of discrete time series so that forecasting models can be trained on each group.
 import abc
 from typing import Tuple
 from diviner.exceptions import DivinerException
+from diviner.config.constants import MASTER_GROUP_KEY
 
 
 class BaseGroupGenerator(abc.ABC):
@@ -62,7 +63,7 @@ class BaseGroupGenerator(abc.ABC):
             )
 
         self._group_key_columns = group_key_columns
-        self._master_group_key = "grouping_key"
+        self._master_group_key = MASTER_GROUP_KEY
 
     @abc.abstractmethod
     def generate_processing_groups(self, df):
