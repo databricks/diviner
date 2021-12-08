@@ -1,6 +1,7 @@
 numpy
 pandas
 prophet
+pmdarima
 
 #Required for testing
 pytest
