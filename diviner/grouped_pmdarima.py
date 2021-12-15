@@ -1,10 +1,15 @@
 import inspect
+import os
 import warnings
 from copy import deepcopy
 
 import pandas as pd
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 from diviner.model.base_model import GroupedForecaster
+from diviner.serialize.pmdarima_serializer import (
+    group_pmdarima_save,
+    group_pmdarima_load,
+)
 from diviner.utils.common import (
     _validate_keys_in_df,
     _restructure_fit_payload,
@@ -41,8 +46,8 @@ class GroupedPmdarima(GroupedForecaster):
         self._master_key = "grouping_key"
         self._module, self._clazz = self._model_type_resolver()
         self._predict_col = predict_col
-        # self._max_datetime_per_group = None
-        # self._datetime_freq = None
+        self._max_datetime_per_group = None
+        self._datetime_freq = None
 
         #  TODO: record last datetime event from training and period to create datetime mapping
         #  in predict and forecast methods
@@ -170,13 +175,14 @@ class GroupedPmdarima(GroupedForecaster):
         to these grouping columns, a column defined as number of future steps to predict must be
         defined. This column will, for each group, contain the per-group future periods to predict
         upon.
-        Fields required: group_key, n_periods_col
+        Fields required: group_key_columns(raw), n_periods_col
         Field optional: return_conf_int, alpha, inverse_transform
         :param df:
         :param exog:
         :param kwargs:
         :return:
         """
+        self._fit_check()
         processing_data = PandasGroupGenerator(
             self._group_key_columns
         )._get_df_with_master_key_column(df)
@@ -198,10 +204,9 @@ class GroupedPmdarima(GroupedForecaster):
         frequency=None,
         **kwargs,
     ):
-
+        self._fit_check()
         prediction_config = generate_prediction_config(
-            list(self.model.keys()),
-            self._group_key_columns,
+            self,
             horizon,
             alpha,
             return_conf_int,
@@ -241,15 +246,30 @@ class GroupedPmdarima(GroupedForecaster):
 
     def save(self, path: str):
 
-        raise NotImplementedError
+        self._fit_check()
+        directory = os.path.dirname(path)
+        os.makedirs(directory, exist_ok=True)
+        group_pmdarima_save(self, path)
 
-    def load(self, path: str):
-
-        raise NotImplementedError
+    @classmethod
+    def load(cls, path: str):
+        attr_dict = group_pmdarima_load(path)
+        init_args = inspect.signature(cls.__init__).parameters.keys()
+        cleaned_attr_dict = {key.lstrip("_"): value for key, value in attr_dict.items()}
+        init_cls = [cleaned_attr_dict[arg] for arg in init_args if arg != "self"]
+        instance = cls(*init_cls)
+        for key, value in attr_dict.items():
+            if key not in init_args:
+                setattr(instance, key, value)
+        return instance
 
     def validate_series(self, df, m, **kwargs):
 
         # TODO: ADFTest, CHTest, KPSSTest, OCSBTest, PPTest in a single report
+        raise NotImplementedError
+
+    def cross_validate(self):
+
         raise NotImplementedError
 
     def calculate_ndiffs(self, df):

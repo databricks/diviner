@@ -172,8 +172,7 @@ def test_default_auto_arima_predict_conf_int(basic_pmdarima):
     }
 
     prediction_conf = generate_prediction_config(
-        list(basic_pmdarima.model.keys()),
-        basic_pmdarima._group_key_columns,
+        basic_pmdarima,
         n_periods=forecast_cnt,
         return_conf_int=True,
     )

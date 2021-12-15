@@ -75,7 +75,7 @@ def _get_arima_training_metrics(arima_model):
     return metrics
 
 
-def generate_prediction_config(
+def _generate_prediction_config(
     group_keys,
     group_key_columns,
     n_periods,
@@ -83,16 +83,6 @@ def generate_prediction_config(
     return_conf_int=False,
     inverse_transform=True,
 ):
-    """
-
-    :param group_keys:
-    :param group_key_columns:
-    :param n_periods:
-    :param alpha:
-    :param return_conf_int:
-    :param inverse_transform:
-    :return:
-    """
     config = []
     for key in group_keys:
         row = {
@@ -105,3 +95,31 @@ def generate_prediction_config(
             row[col] = key[idx]
         config.append(row)
     return pd.DataFrame.from_records(config)
+
+
+def generate_prediction_config(
+    grouped_pmdarima_model,
+    n_periods,
+    alpha=0.05,
+    return_conf_int=False,
+    inverse_transform=True,
+):
+    """
+
+    :param grouped_pmdarima_model:
+    :param n_periods:
+    :param alpha:
+    :param return_conf_int:
+    :param inverse_transform:
+    :return:
+    """
+    model_group_keys = list(grouped_pmdarima_model.model.keys())
+    group_key_columns = grouped_pmdarima_model._group_key_columns
+    return _generate_prediction_config(
+        model_group_keys,
+        group_key_columns,
+        n_periods,
+        alpha,
+        return_conf_int,
+        inverse_transform,
+    )

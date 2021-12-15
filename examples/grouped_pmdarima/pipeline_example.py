@@ -46,8 +46,7 @@ if __name__ == "__main__":
     get_and_print_model_metrics_params(pipeline_arima)
 
     pred_conf = generate_prediction_config(
-        list(pipeline_arima.model.keys()),
-        group_key_columns,
+        pipeline_arima,
         n_periods=30,
         alpha=0.01,
         return_conf_int=True,

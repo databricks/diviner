@@ -1,7 +1,7 @@
 from pmdarima.arima.auto import AutoARIMA
 from examples.example_data_generator import generate_example_data
 from diviner import GroupedPmdarima
-from diviner.utils.pmdarima_utils import generate_prediction_config
+from diviner.utils.pmdarima_utils import _generate_prediction_config
 
 
 def get_and_print_model_metrics_params(grouped_model):
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     print("\nAutoARIMA results:\n", "-" * 40)
     get_and_print_model_metrics_params(base_auto_arima)
 
-    pred_conf = generate_prediction_config(
+    pred_conf = _generate_prediction_config(
         list(base_auto_arima.model.keys()),
         group_key_columns,
         n_periods=30,

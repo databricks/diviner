@@ -5,7 +5,7 @@ from diviner.utils.pmdarima_utils import (
     _get_arima_params,
     _get_arima_training_metrics,
     _PMDARIMA_MODEL_METRICS,
-    generate_prediction_config,
+    _generate_prediction_config,
 )
 
 
@@ -45,7 +45,7 @@ def test_prediction_config_generation():
 
     group_keys = [("a", "z"), ("b", "z")]
 
-    conf = generate_prediction_config(
+    conf = _generate_prediction_config(
         group_keys=group_keys,
         group_key_columns=["col1", "col2"],
         n_periods=50,

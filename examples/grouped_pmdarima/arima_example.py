@@ -37,8 +37,7 @@ if __name__ == "__main__":
     get_and_print_model_metrics_params(base_arima)
 
     pred_conf = generate_prediction_config(
-        list(base_arima.model.keys()),
-        group_key_columns,
+        base_arima,
         n_periods=30,
         alpha=0.02,
         return_conf_int=True,

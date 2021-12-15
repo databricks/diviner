@@ -41,8 +41,7 @@ if __name__ == "__main__":
     get_and_print_model_metrics_params(auto_pipeline)
 
     pred_conf = generate_prediction_config(
-        list(auto_pipeline.model.keys()),
-        group_key_columns,
+        auto_pipeline,
         n_periods=30,
         alpha=0.01,
         return_conf_int=True,
