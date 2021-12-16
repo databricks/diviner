@@ -2,7 +2,7 @@ import inspect
 import os
 import warnings
 from copy import deepcopy
-
+from pmdarima.arima import decompose, ndiffs, nsdiffs, is_constant
 import pandas as pd
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 from diviner.model.base_model import GroupedForecaster
@@ -109,7 +109,7 @@ class GroupedPmdarima(GroupedForecaster):
         :param kwargs:
         :return:
         """
-
+        #  TODO: allow for passed-in per-group 'd' and 'D' values from ndiffs and nsdiffs
         self._model_init_check()
         self._group_key_columns = group_key_columns
 
@@ -263,23 +263,95 @@ class GroupedPmdarima(GroupedForecaster):
                 setattr(instance, key, value)
         return instance
 
-    def validate_series(self, df, m, **kwargs):
+    def _decompose_group(self, group_df, group_key, m, type_, filter_):
 
-        # TODO: ADFTest, CHTest, KPSSTest, OCSBTest, PPTest in a single report
-        raise NotImplementedError
+        group_decomposition = decompose(
+            x=group_df[self._y_col], type_=type_, m=m, filter_=filter_
+        )
+        group_result = {
+            key: getattr(group_decomposition, key)
+            for key in group_decomposition._fields
+        }
+        output_df = pd.DataFrame.from_dict(group_result)
+        output_df[self._time_col] = group_df[self._time_col]
+        output_df[self._master_key] = output_df.apply(lambda x: group_key, 1)
+        return output_df
+
+    def decompose_groups(self, df, group_key_columns, m, type_, filter_=None):
+
+        grouped_df = PandasGroupGenerator(group_key_columns).generate_processing_groups(
+            df
+        )
+        group_decomposition = {
+            group_key: self._decompose_group(group_df, group_key, m, type_, filter_)
+            for group_key, group_df in grouped_df
+        }
+        return _restructure_predictions(
+            group_decomposition, group_key_columns, self._master_key
+        )
+
+    def calculate_ndiffs(
+        self, df, group_key_columns, alpha=0.05, test="kpss", max_d=2, **kwargs
+    ):
+        """
+
+        :param df:
+        :param group_key_columns:
+        :param alpha:
+        :param test:
+        :param max_d:
+        :param kwargs:
+        :return:
+        """
+        grouped_df = PandasGroupGenerator(group_key_columns).generate_processing_groups(
+            df
+        )
+
+        group_ndiffs = {
+            group: ndiffs(
+                x=group_df[self._y_col], alpha=alpha, test=test, max_d=max_d, **kwargs
+            )
+            for group, group_df in grouped_df
+        }
+
+        return group_ndiffs
+
+    def calculate_nsdiffs(
+        self, df, group_key_columns, m, test="ocsb", max_D=2, **kwargs
+    ):
+        """
+
+        :param df:
+        :param group_key_columns:
+        :param m:
+        :param test:
+        :param max_D:
+        :param kwargs:
+        :return:
+        """
+
+        grouped_df = PandasGroupGenerator(group_key_columns).generate_processing_groups(
+            df
+        )
+        group_nsdiffs = {
+            group: nsdiffs(
+                x=group_df[self._y_col], m=m, max_D=max_D, test=test, **kwargs
+            )
+            for group, group_df in grouped_df
+        }
+
+        return group_nsdiffs
+
+    def calculate_is_constant(self, df, group_key_columns):
+
+        grouped_df = PandasGroupGenerator(group_key_columns).generate_processing_groups(
+            df
+        )
+        group_constant_check = {
+            group: is_constant(group_df[self._y_col]) for group, group_df in grouped_df
+        }
+        return group_constant_check
 
     def cross_validate(self):
-
-        raise NotImplementedError
-
-    def calculate_ndiffs(self, df):
-
-        raise NotImplementedError
-
-    def calculate_nsdiffs(self, df):
-
-        raise NotImplementedError
-
-    def calculate_is_constant(self, df):
 
         raise NotImplementedError

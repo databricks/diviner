@@ -24,7 +24,7 @@ def data():
     test_data = data_generator.generate_test_data(
         column_count=2,
         series_count=SERIES_TEST_COUNT,
-        series_size=2000,
+        series_size=365 * 6,
         start_dt="2020-01-01",
         days_period=1,
     )
@@ -181,3 +181,62 @@ def test_default_auto_arima_predict_conf_int(basic_pmdarima):
 
     assert len(prediction) == forecast_cnt * SERIES_TEST_COUNT
     assert set(prediction.columns).issubset(forecast_columns)
+
+
+def test_group_trend_decomposition(data):
+
+    decomposed = GroupedPmdarima(y_col="y", time_col="ds").decompose_groups(
+        data.df, data.key_columns, m=7, type_="additive"
+    )
+    for col in {
+        "x",
+        "trend",
+        "seasonal",
+        "random",
+        "ds",
+        "key1",
+        "key0",
+        "grouping_key_columns",
+    }:
+        assert col in decomposed.columns
+    assert len(decomposed) == len(data.df)
+
+
+def test_group_ndfiff_calculation(data):
+
+    # Purposefully select an alpha that would drive a 'd' value very high
+    # (this value should never be used in practice)
+    ndiffs = GroupedPmdarima(y_col="y", time_col="ds").calculate_ndiffs(
+        data.df, data.key_columns, alpha=0.5, test="pp", max_d=2
+    )
+
+    assert len(ndiffs) == SERIES_TEST_COUNT
+    for k, v in ndiffs.items():
+        assert isinstance(k, tuple)
+        assert v <= 2
+
+
+def test_group_nsdiff_calculation(data):
+
+    nsdiffs = GroupedPmdarima(y_col="y", time_col="ds").calculate_nsdiffs(
+        data.df, data.key_columns, m=365, test="ch", max_D=5
+    )
+
+    assert len(nsdiffs) == SERIES_TEST_COUNT
+    for k, v in nsdiffs.items():
+        assert isinstance(k, tuple)
+        assert v == 4  # Works with the algorithm used to generate the test data
+
+
+def test_group_is_constant_calculation(data):
+
+    is_constants_check = GroupedPmdarima(
+        y_col="y", time_col="ds"
+    ).calculate_is_constant(data.df, data.key_columns)
+
+    assert len(is_constants_check) == SERIES_TEST_COUNT
+    for k, v in is_constants_check.items():
+        assert isinstance(k, tuple)
+        assert (
+            not v
+        )  # The algorithm that generates the data intentionally creates a trend
