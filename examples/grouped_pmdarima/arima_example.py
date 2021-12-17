@@ -1,7 +1,6 @@
 from pmdarima.arima.arima import ARIMA
 from examples.example_data_generator import generate_example_data
 from diviner import GroupedPmdarima
-from diviner.utils.pmdarima_utils import generate_prediction_config
 
 
 def get_and_print_model_metrics_params(grouped_model):
@@ -30,24 +29,12 @@ if __name__ == "__main__":
     # Build a GroupedPmdarima model by specifying an ARIMA model
     arima_obj = ARIMA(order=(2, 1, 3), out_of_sample_size=60)
     base_arima = GroupedPmdarima(
-        y_col="y", time_col="ds", model_constructor=arima_obj
+        y_col="y", datetime_col="ds", model_template=arima_obj
     ).fit(df=training_data, group_key_columns=group_key_columns, silence_warnings=True)
 
     print("\nARIMA results:\n", "-" * 40)
     get_and_print_model_metrics_params(base_arima)
 
-    pred_conf = generate_prediction_config(
-        base_arima,
-        n_periods=30,
-        alpha=0.02,
-        return_conf_int=True,
-    )
-
-    prediction = base_arima.predict(pred_conf)
+    prediction = base_arima.predict(n_periods=30, alpha=0.02, return_conf_int=True)
     print("\nPredictions:\n", "-" * 40)
     print(prediction.to_string())
-
-    # Alternatively, the forecast method can be used instead of generating a per-group custom config
-    forecast = base_arima.forecast(30, alpha=0.05, return_conf_int=True)
-    print("\nForecasts: \n", "-" * 40)
-    print(forecast.to_string())

@@ -1,11 +1,12 @@
 from tests import data_generator
+from pmdarima.arima.auto import AutoARIMA
 from diviner import GroupedPmdarima
 from diviner.utils.pmdarima_utils import (
     _extract_arima_model,
     _get_arima_params,
     _get_arima_training_metrics,
     _PMDARIMA_MODEL_METRICS,
-    _generate_prediction_config,
+    _construct_prediction_config,
 )
 
 
@@ -19,9 +20,9 @@ def test_default_arima_fit_attribute_extraction():
         days_period=1,
     )
 
-    arima_model = GroupedPmdarima("y", "ds").fit(
-        data.df, data.key_columns, arima__out_of_sample_size=30
-    )
+    arima_model = GroupedPmdarima(
+        "y", "ds", model_template=AutoARIMA(out_of_sample_size=30)
+    ).fit(data.df, data.key_columns)
 
     for group, model in arima_model.model.items():
         pipeline = arima_model._extract_individual_model(group)
@@ -45,7 +46,7 @@ def test_prediction_config_generation():
 
     group_keys = [("a", "z"), ("b", "z")]
 
-    conf = _generate_prediction_config(
+    conf = _construct_prediction_config(
         group_keys=group_keys,
         group_key_columns=["col1", "col2"],
         n_periods=50,

@@ -1,29 +1,34 @@
 import pickle
 import json
-from ast import literal_eval
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 
 _PMDARIMA_CLASS_DICTS = {"model", "_max_datetime_per_group"}
-_PMDARIMA_CLASS_OBJECTS = {"_model_constructor"}
+_PMDARIMA_CLASS_OBJECTS = {"_model_template"}
 
 
 class PmdarimaEncoder:
     def __init__(self):
         self.serialized_model = {}
 
+    @staticmethod
+    def _byte_encode(payload):
+        return urlsafe_b64encode(pickle.dumps(payload)).decode("utf-8")
+
     def _encode_dict(self, name, obj):
         self.serialized_model[name] = {
-            str(key): str(pickle.dumps(value)) for key, value in obj.items()
+            self._byte_encode(key): self._byte_encode(value)
+            for key, value in obj.items()
         }
 
     def _encode_obj(self, name, obj):
-        self.serialized_model[name] = str(pickle.dumps(obj))
+        self.serialized_model[name] = self._byte_encode(obj)
 
     def encode(self, grouped_model):
         for key in vars(grouped_model).keys():
             value = getattr(grouped_model, key)
             if value:
                 if key not in _PMDARIMA_CLASS_DICTS.union(_PMDARIMA_CLASS_OBJECTS):
-                    self.serialized_model[key] = str(value)
+                    self.serialized_model[key] = value
                 if key in _PMDARIMA_CLASS_DICTS:
                     self._encode_dict(key, value)
                 if key in _PMDARIMA_CLASS_OBJECTS:
@@ -37,12 +42,16 @@ class PmdarimaDecoder:
     def __init__(self):
         self.model_decode = {}
 
+    @staticmethod
+    def _byte_decode(payload):
+        return pickle.loads(urlsafe_b64decode(payload.encode("utf-8")))
+
     def _decode_obj(self, key, obj):
-        self.model_decode[key] = pickle.loads(literal_eval(obj))
+        self.model_decode[key] = self._byte_decode(obj)
 
     def _decode_dict(self, key, obj):
         self.model_decode[key] = {
-            literal_eval(key): pickle.loads(literal_eval(value))
+            self._byte_decode(key): self._byte_decode(value)
             for key, value in obj.items()
         }
 
@@ -50,10 +59,7 @@ class PmdarimaDecoder:
         for key, value in model_json.items():
             if value:
                 if key not in _PMDARIMA_CLASS_DICTS.union(_PMDARIMA_CLASS_OBJECTS):
-                    try:
-                        self.model_decode[key] = literal_eval(value)
-                    except ValueError:
-                        self.model_decode[key] = value
+                    self.model_decode[key] = value
                 if key in _PMDARIMA_CLASS_DICTS:
                     self._decode_dict(key, value)
                 if key in _PMDARIMA_CLASS_OBJECTS:
@@ -63,7 +69,7 @@ class PmdarimaDecoder:
         return self.model_decode
 
 
-def group_pmdarima_save(model, path):
+def grouped_pmdarima_save(model, path):
 
     encoded = PmdarimaEncoder().encode(model)
 
@@ -71,7 +77,7 @@ def group_pmdarima_save(model, path):
         json.dump(encoded, f)
 
 
-def group_pmdarima_load(path):
+def grouped_pmdarima_load(path):
 
     with open(path, "r") as f:
         model = json.load(f)

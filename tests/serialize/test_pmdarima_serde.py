@@ -26,8 +26,8 @@ def model(data):
 
     arima = GroupedPmdarima(
         y_col="y",
-        time_col="ds",
-        model_constructor=Pipeline(
+        datetime_col="ds",
+        model_template=Pipeline(
             steps=[("arima", AutoARIMA(out_of_sample_size=60, max_order=7))]
         ),
     ).fit(df=data.df, group_key_columns=data.key_columns, silence_warnings=True)
@@ -41,7 +41,7 @@ def test_grouped_pmdarima_serialize(model):
     decoded = PmdarimaDecoder().decode(encoded)
 
     for key, value in model_attrs.items():
-        if key not in {"model", "_model_constructor"}:
+        if key not in {"model", "_model_template"}:
             assert model_attrs[key] == decoded[key]
         else:
             assert isinstance(decoded[key], type(model_attrs[key]))
@@ -62,12 +62,12 @@ def test_grouped_pmdarima_save_and_load(model):
     assert_frame_equal(orig_metrics, loaded_metrics)
 
 
-def test_grouped_pmdarima_save_load_forecast(model):
+def test_grouped_pmdarima_save_load_predict(model):
 
     save_path = "/tmp/pmdarima/test.pmd"
-    forecast = model.forecast(30, return_conf_int=True)
+    forecast = model.predict(30, return_conf_int=True)
     model.save(save_path)
     loaded = GroupedPmdarima.load(save_path)
-    loaded_forecast = loaded.forecast(30, return_conf_int=True)
+    loaded_forecast = loaded.predict(30, return_conf_int=True)
 
     assert_frame_equal(forecast, loaded_forecast)

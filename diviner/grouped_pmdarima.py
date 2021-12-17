@@ -7,8 +7,8 @@ import pandas as pd
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 from diviner.model.base_model import GroupedForecaster
 from diviner.serialize.pmdarima_serializer import (
-    group_pmdarima_save,
-    group_pmdarima_load,
+    grouped_pmdarima_save,
+    grouped_pmdarima_load,
 )
 from diviner.utils.common import (
     _validate_keys_in_df,
@@ -20,10 +20,9 @@ from diviner.utils.pmdarima_utils import (
     _get_arima_params,
     _get_arima_training_metrics,
     _extract_arima_model,
-    generate_prediction_config,
+    _generate_prediction_config,
 )
 from diviner.data.pandas_group_generator import PandasGroupGenerator
-from diviner.model.pmdarima_pipeline import PmdarimaPipeline
 from diviner.data.utils.dataframe_utils import apply_datetime_index_to_groups
 from diviner.exceptions import DivinerException
 
@@ -32,19 +31,18 @@ class GroupedPmdarima(GroupedForecaster):
     def __init__(
         self,
         y_col,
-        time_col,
-        model_constructor=None,
+        datetime_col,
+        model_template,
         exog_cols=None,
         predict_col="forecast",
     ):
 
         super().__init__()
         self._y_col = y_col
-        self._time_col = time_col
-        self._model_constructor = model_constructor
+        self._datetime_col = datetime_col
+        self._model_template = model_template
         self._exog_cols = exog_cols
         self._master_key = "grouping_key"
-        self._module, self._clazz = self._model_type_resolver()
         self._predict_col = predict_col
         self._max_datetime_per_group = None
         self._datetime_freq = None
@@ -52,15 +50,9 @@ class GroupedPmdarima(GroupedForecaster):
         #  TODO: record last datetime event from training and period to create datetime mapping
         #  in predict and forecast methods
 
-    def _default_pipeline_constructor(self, **kwargs):
-        generated_pipeline = PmdarimaPipeline(**kwargs).build_pipeline()
-        if not self._module:
-            self._module, self._clazz = self._model_type_resolver(generated_pipeline)
-        return generated_pipeline
-
     def _model_type_resolver(self, obj=None):
         if not obj:
-            obj = self._model_constructor
+            obj = self._model_template
         try:
             module = inspect.getmodule(obj).__name__
             clazz = type(obj).__name__
@@ -76,19 +68,12 @@ class GroupedPmdarima(GroupedForecaster):
             raise DivinerException(f"The model for group {group_key} was not trained.")
         return model_instance
 
-    def _fit_individual_model(self, group_key, group_df, silence_warnings, **kwargs):
+    def _fit_individual_model(
+        self, group_key, group_df, silence_warnings, **fit_kwargs
+    ):
 
         y = group_df[self._y_col]
-        if not self._model_constructor:
-            # The pipeline generator mode is currying config args in kwargs for pipeline
-            # construction. Any arguments that are expressed in the pmdarima pipeline
-            # syntax of <stage>__<param> will be extracted and used to generate the pipeline
-            # object. SARIMAX fit arguments will remain in the **kwargs.
-            pipeline_keys = {key for key in kwargs.keys() if "__" in key}
-            pipeline_kwargs = {key: kwargs.pop(key) for key in pipeline_keys}
-            model = self._default_pipeline_constructor(**pipeline_kwargs)
-        else:
-            model = deepcopy(self._model_constructor)
+        model = deepcopy(self._model_template)
         if self._exog_cols:
             exog = group_df[self._exog_cols]
         else:
@@ -97,9 +82,9 @@ class GroupedPmdarima(GroupedForecaster):
             if silence_warnings:
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
                 warnings.filterwarnings("ignore", category=ConvergenceWarning)
-            return {group_key: model.fit(y=y, X=exog, **kwargs)}
+            return {group_key: model.fit(y=y, X=exog, **fit_kwargs)}
 
-    def fit(self, df, group_key_columns, silence_warnings=False, **kwargs):
+    def fit(self, df, group_key_columns, silence_warnings=False, **fit_kwargs):
         """
 
 
@@ -119,11 +104,13 @@ class GroupedPmdarima(GroupedForecaster):
             self._group_key_columns
         ).generate_processing_groups(df)
         dt_indexed_group_data = apply_datetime_index_to_groups(
-            grouped_data, self._time_col
+            grouped_data, self._datetime_col
         )
 
         fit_model = [
-            self._fit_individual_model(group_key, group_df, silence_warnings, **kwargs)
+            self._fit_individual_model(
+                group_key, group_df, silence_warnings, **fit_kwargs
+            )
             for group_key, group_df in dt_indexed_group_data
         ]
 
@@ -166,7 +153,7 @@ class GroupedPmdarima(GroupedForecaster):
 
         return prediction_df
 
-    def predict(self, df, n_periods_col="n_periods", exog=None, **kwargs):
+    def _predict_groups(self, df, n_periods_col="n_periods", exog=None, **kwargs):
         """
         Predict future periods from the trained models.
         The `df` structure must consist of columns that match the original group_key_columns that
@@ -194,9 +181,9 @@ class GroupedPmdarima(GroupedForecaster):
             prediction_collection, self._group_key_columns, self._master_key
         )
 
-    def forecast(
+    def predict(
         self,
-        horizon: int,
+        n_periods: int,
         alpha=0.05,
         return_conf_int=False,
         inverse_transform=True,
@@ -205,14 +192,14 @@ class GroupedPmdarima(GroupedForecaster):
         **kwargs,
     ):
         self._fit_check()
-        prediction_config = generate_prediction_config(
+        prediction_config = _generate_prediction_config(
             self,
-            horizon,
+            n_periods,
             alpha,
             return_conf_int,
             inverse_transform,
         )
-        return self.predict(prediction_config, exog=exog, **kwargs)
+        return self._predict_groups(prediction_config, exog=exog, **kwargs)
 
     def get_metrics(self):
         """
@@ -249,11 +236,11 @@ class GroupedPmdarima(GroupedForecaster):
         self._fit_check()
         directory = os.path.dirname(path)
         os.makedirs(directory, exist_ok=True)
-        group_pmdarima_save(self, path)
+        grouped_pmdarima_save(self, path)
 
     @classmethod
     def load(cls, path: str):
-        attr_dict = group_pmdarima_load(path)
+        attr_dict = grouped_pmdarima_load(path)
         init_args = inspect.signature(cls.__init__).parameters.keys()
         cleaned_attr_dict = {key.lstrip("_"): value for key, value in attr_dict.items()}
         init_cls = [cleaned_attr_dict[arg] for arg in init_args if arg != "self"]
@@ -273,7 +260,7 @@ class GroupedPmdarima(GroupedForecaster):
             for key in group_decomposition._fields
         }
         output_df = pd.DataFrame.from_dict(group_result)
-        output_df[self._time_col] = group_df[self._time_col]
+        output_df[self._datetime_col] = group_df[self._datetime_col]
         output_df[self._master_key] = output_df.apply(lambda x: group_key, 1)
         return output_df
 

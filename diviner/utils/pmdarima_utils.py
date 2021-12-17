@@ -5,18 +5,6 @@ from pmdarima.arima.auto import AutoARIMA
 from pmdarima.arima.arima import ARIMA
 from diviner.exceptions import DivinerException
 
-_PMDARIMA_MODEL_PARAMS = {
-    "order",
-    "seasonal_order",
-    "start_params",
-    "method",
-    "maxiter",
-    "out_of_sample_size",
-    "scoring",
-    "trend",
-    "with_intercept",
-    "sarimax_kwargs",
-}
 _COMPOUND_KEYS = {"order": ("p", "d", "q"), "seasonal_order": ("P", "D", "Q", "s")}
 _PMDARIMA_MODEL_METRICS = {"aic", "aicc", "bic", "hqic", "oob"}
 
@@ -47,17 +35,14 @@ def _extract_arima_model(model):
 
 def _get_arima_params(arima_model):
 
-    params = {}
-    for param in _PMDARIMA_MODEL_PARAMS:
-        try:
-            value = getattr(arima_model, param)
-            if param in _COMPOUND_KEYS.keys():
-                extracted = dict(zip(_COMPOUND_KEYS[param], value))
-                params.update(extracted)
-            else:
-                params[param] = value
-        except AttributeError as e:
-            warnings.warn(f"Cannot extract parameter '{param}' from model. {e}")
+    params = {
+        key: value
+        for key, value in arima_model.get_params().items()
+        if key not in _COMPOUND_KEYS.keys()
+    }
+    for key, value in _COMPOUND_KEYS.items():
+        compound_param = getattr(arima_model, key)
+        params.update(dict(zip(value, compound_param)))
 
     return params
 
@@ -75,7 +60,7 @@ def _get_arima_training_metrics(arima_model):
     return metrics
 
 
-def _generate_prediction_config(
+def _construct_prediction_config(
     group_keys,
     group_key_columns,
     n_periods,
@@ -97,7 +82,7 @@ def _generate_prediction_config(
     return pd.DataFrame.from_records(config)
 
 
-def generate_prediction_config(
+def _generate_prediction_config(
     grouped_pmdarima_model,
     n_periods,
     alpha=0.05,
@@ -115,7 +100,7 @@ def generate_prediction_config(
     """
     model_group_keys = list(grouped_pmdarima_model.model.keys())
     group_key_columns = grouped_pmdarima_model._group_key_columns
-    return _generate_prediction_config(
+    return _construct_prediction_config(
         model_group_keys,
         group_key_columns,
         n_periods,

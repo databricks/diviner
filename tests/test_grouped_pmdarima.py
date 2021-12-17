@@ -7,15 +7,23 @@ from pmdarima.preprocessing import FourierFeaturizer
 from diviner import GroupedPmdarima
 from diviner.utils.pmdarima_utils import (
     _PMDARIMA_MODEL_METRICS,
-    _PMDARIMA_MODEL_PARAMS,
     _COMPOUND_KEYS,
-    generate_prediction_config,
 )
 
-
+PMDARIMA_MODEL_PARAMS = {
+    "order",
+    "seasonal_order",
+    "start_params",
+    "method",
+    "maxiter",
+    "out_of_sample_size",
+    "scoring",
+    "trend",
+    "with_intercept",
+}
 SERIES_TEST_COUNT = 2
 PARAMS_COLS = [
-    item for item in _PMDARIMA_MODEL_PARAMS if item not in _COMPOUND_KEYS.keys()
+    item for item in PMDARIMA_MODEL_PARAMS if item not in _COMPOUND_KEYS.keys()
 ] + ["p", "d", "q", "P", "D", "Q", "s"]
 
 
@@ -56,25 +64,8 @@ def basic_pipeline(data):
 
 
 @pytest.fixture(scope="module")
-def undefined_model(data):
-    return GroupedPmdarima("y", "ds").fit(
-        data.df, data.key_columns, arima__out_of_sample_size=30
-    )
-
-
-@pytest.mark.parametrize(
-    "conf, expecting",
-    [
-        (AutoARIMA(), ["pmdarima.arima.auto", "AutoARIMA"]),
-        (ARIMA(order=(1, 0, 2)), ["pmdarima.arima.arima", "ARIMA"]),
-        (Pipeline(steps=[("arima", AutoARIMA())]), ["pmdarima.pipeline", "Pipeline"]),
-    ],
-    ids=["AutoARIMA", "ARIMA", "Pipeline"],
-)
-def test_configuration(conf, expecting):
-    grouped_model = GroupedPmdarima("y", "ds", conf)
-    assert grouped_model._module == expecting[0]
-    assert grouped_model._clazz == expecting[1]
+def grouped_obj():
+    return GroupedPmdarima("y", "ds", ARIMA(order=(1, 1, 1)))
 
 
 def test_default_arima_metric_extract(basic_arima):
@@ -98,14 +89,6 @@ def test_default_auto_arima_metric_extract(basic_pmdarima):
 def test_default_pipeline_metric_extract(basic_pipeline):
 
     metrics = basic_pipeline.get_metrics()
-    metric_cols = metrics.columns
-    assert len(metrics) == SERIES_TEST_COUNT
-    for item in _PMDARIMA_MODEL_METRICS:
-        assert item in metric_cols
-
-
-def test_default_generate_pipeline_metric_extract(undefined_model):
-    metrics = undefined_model.get_metrics()
     metric_cols = metrics.columns
     assert len(metrics) == SERIES_TEST_COUNT
     for item in _PMDARIMA_MODEL_METRICS:
@@ -142,19 +125,10 @@ def test_default_pipeline_params_extract(basic_pipeline):
         assert column in param_cols
 
 
-def test_default_generate_pipeline_params_extract(undefined_model):
-    params = undefined_model.get_model_params()
-    param_cols = params.columns
-
-    assert len(params) == SERIES_TEST_COUNT
-    for column in PARAMS_COLS:
-        assert column in param_cols
-
-
 def test_default_pipeline_forecast_no_conf_int(basic_pipeline):
     forecast_cnt = 10
     forecast_columns = {"forecast", "grouping_key_columns", "key1", "key0"}
-    forecast = basic_pipeline.forecast(forecast_cnt)
+    forecast = basic_pipeline.predict(forecast_cnt)
 
     assert set(forecast.columns).issubset(forecast_columns)
     assert len(forecast) == forecast_cnt * SERIES_TEST_COUNT
@@ -171,22 +145,17 @@ def test_default_auto_arima_predict_conf_int(basic_pmdarima):
         "yhat_upper",
     }
 
-    prediction_conf = generate_prediction_config(
-        basic_pmdarima,
-        n_periods=forecast_cnt,
-        return_conf_int=True,
-    )
-
-    prediction = basic_pmdarima.predict(prediction_conf)
+    prediction = basic_pmdarima.predict(n_periods=forecast_cnt, return_conf_int=True)
 
     assert len(prediction) == forecast_cnt * SERIES_TEST_COUNT
     assert set(prediction.columns).issubset(forecast_columns)
 
 
-def test_group_trend_decomposition(data):
+@pytest.mark.parametrize("type_", ["additive", "multiplicative"])
+def test_group_trend_decomposition(data, grouped_obj, type_):
 
-    decomposed = GroupedPmdarima(y_col="y", time_col="ds").decompose_groups(
-        data.df, data.key_columns, m=7, type_="additive"
+    decomposed = grouped_obj.decompose_groups(
+        data.df, data.key_columns, m=4, type_=type_
     )
     for col in {
         "x",
@@ -202,11 +171,11 @@ def test_group_trend_decomposition(data):
     assert len(decomposed) == len(data.df)
 
 
-def test_group_ndfiff_calculation(data):
+def test_group_ndfiff_calculation(data, grouped_obj):
 
     # Purposefully select an alpha that would drive a 'd' value very high
     # (this value should never be used in practice)
-    ndiffs = GroupedPmdarima(y_col="y", time_col="ds").calculate_ndiffs(
+    ndiffs = grouped_obj.calculate_ndiffs(
         data.df, data.key_columns, alpha=0.5, test="pp", max_d=2
     )
 
@@ -216,9 +185,9 @@ def test_group_ndfiff_calculation(data):
         assert v <= 2
 
 
-def test_group_nsdiff_calculation(data):
+def test_group_nsdiff_calculation(data, grouped_obj):
 
-    nsdiffs = GroupedPmdarima(y_col="y", time_col="ds").calculate_nsdiffs(
+    nsdiffs = grouped_obj.calculate_nsdiffs(
         data.df, data.key_columns, m=365, test="ch", max_D=5
     )
 
@@ -228,11 +197,9 @@ def test_group_nsdiff_calculation(data):
         assert v == 4  # Works with the algorithm used to generate the test data
 
 
-def test_group_is_constant_calculation(data):
+def test_group_is_constant_calculation(data, grouped_obj):
 
-    is_constants_check = GroupedPmdarima(
-        y_col="y", time_col="ds"
-    ).calculate_is_constant(data.df, data.key_columns)
+    is_constants_check = grouped_obj.calculate_is_constant(data.df, data.key_columns)
 
     assert len(is_constants_check) == SERIES_TEST_COUNT
     for k, v in is_constants_check.items():

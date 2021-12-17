@@ -61,22 +61,6 @@ class GroupedForecaster(abc.ABC):
         """
 
     @abc.abstractmethod
-    def forecast(self, horizon: int, frequency: str):
-        """
-        A template method that constructs a synthetic period-repeating DataFrame from the
-        end period of the training data. The concept here is to not have the user define
-        a specific prediction DataFrame, but rather to automatically generate the required
-        data from the attributes of the model's training (essentially to 'start predicting
-        where the training data left off'.
-
-        :param horizon: int number of future units per group to generate predictions for
-        :param frequency: The frequency of the horizon in Pandas time_delta format (e.g.,
-               'D' for days, 'M' for month)
-        :return: A consolidated DataFrame of the union of each model's predictions for the
-                 horizon number of units of frequency.
-        """
-
-    @abc.abstractmethod
     def save(self, path: str):
         """
         Model serialization method, converting the model instance to JSON to be stored on disk.
