@@ -32,9 +32,16 @@ if __name__ == "__main__":
         y_col="y", datetime_col="ds", model_template=arima_obj
     ).fit(df=training_data, group_key_columns=group_key_columns, silence_warnings=True)
 
-    print("\nARIMA results:\n", "-" * 40)
-    get_and_print_model_metrics_params(base_arima)
+    # Save to local directory
+    save_dir = "/tmp/group_pmdarima/arima.gpmd"
+    base_arima.save(save_dir)
 
-    prediction = base_arima.predict(n_periods=30, alpha=0.02, return_conf_int=True)
+    # Load from saved model
+    loaded_model = GroupedPmdarima.load(save_dir)
+
+    print("\nARIMA results:\n", "-" * 40)
+    get_and_print_model_metrics_params(loaded_model)
+
+    prediction = loaded_model.predict(n_periods=30, alpha=0.02, return_conf_int=True)
     print("\nPredictions:\n", "-" * 40)
     print(prediction.to_string())

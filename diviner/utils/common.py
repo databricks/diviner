@@ -107,3 +107,18 @@ def create_reporting_df(extract_dict, master_key, group_key_columns):
     )
     extracted_df.drop(columns=[master_key], axis=1, inplace=True)
     return extracted_df
+
+
+def _get_last_datetime_per_group(dt_indexed_group_data):
+    return {group: df.index.max() for group, df in dt_indexed_group_data}
+
+
+def _get_datetime_freq_per_group(dt_indexed_group_data):
+    group_output = {}
+    for group, df in dt_indexed_group_data:
+        registered_freq = df.index.freq
+        if registered_freq:
+            group_output[group] = registered_freq
+        else:
+            group_output[group] = pd.infer_freq(df.index)
+    return group_output

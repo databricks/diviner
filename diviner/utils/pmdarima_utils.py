@@ -108,3 +108,9 @@ def _generate_prediction_config(
         return_conf_int,
         inverse_transform,
     )
+
+
+def _generate_prediction_datetime_series(fit_max_datetime, fit_freq, periods):
+
+    series_start = pd.date_range(start=fit_max_datetime, periods=2, freq=fit_freq)[-1]
+    return pd.date_range(start=series_start, periods=periods , freq=fit_freq)

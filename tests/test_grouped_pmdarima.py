@@ -127,7 +127,7 @@ def test_default_pipeline_params_extract(basic_pipeline):
 
 def test_default_pipeline_forecast_no_conf_int(basic_pipeline):
     forecast_cnt = 10
-    forecast_columns = {"forecast", "grouping_key_columns", "key1", "key0"}
+    forecast_columns = {"forecast", "grouping_key_columns", "key1", "key0", "ds"}
     forecast = basic_pipeline.predict(forecast_cnt)
 
     assert set(forecast.columns).issubset(forecast_columns)
@@ -143,6 +143,7 @@ def test_default_auto_arima_predict_conf_int(basic_pmdarima):
         "key0",
         "yhat_lower",
         "yhat_upper",
+        "ds"
     }
 
     prediction = basic_pmdarima.predict(n_periods=forecast_cnt, return_conf_int=True)

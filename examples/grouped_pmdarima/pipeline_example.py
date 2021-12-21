@@ -34,16 +34,23 @@ if __name__ == "__main__":
                 "box",
                 BoxCoxEndogTransformer(lmbda2=0.2, neg_action="raise", floor=1e-12),
             ),
-            ("arima", AutoARIMA(out_of_sample_size=60, max_p=2, max_q=3, max_d=1)),
+            ("arima", AutoARIMA(out_of_sample_size=60, max_p=4, max_q=4, max_d=4)),
         ]
     )
     pipeline_arima = GroupedPmdarima(
         y_col="y", datetime_col="ds", model_template=pipeline_obj
     ).fit(df=training_data, group_key_columns=group_key_columns, silence_warnings=True)
 
+    # Save to local directory
+    save_dir = "/tmp/group_pmdarima/pipeline.gpmd"
+    pipeline_arima.save(save_dir)
+
+    # Load from saved model
+    loaded_model = GroupedPmdarima.load(save_dir)
+
     print("\nPipeline AutoARIMA results:\n", "-" * 40)
-    get_and_print_model_metrics_params(pipeline_arima)
+    get_and_print_model_metrics_params(loaded_model)
 
     print("\nPredictions:\n", "-" * 40)
-    prediction = pipeline_arima.predict(n_periods=30, alpha=0.2, return_conf_int=True)
+    prediction = loaded_model.predict(n_periods=30, alpha=0.2, return_conf_int=True)
     print(prediction.to_string())
