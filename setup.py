@@ -8,9 +8,8 @@ version = (
     .VERSION
 )
 
-REQUIREMENTS = ["numpy", "pandas", "prophet"]
+REQUIREMENTS = ["numpy", "pandas", "prophet", "pmdarima"]
 
-#  TODO: finish this
 setup(
     name="diviner",
     version=version,
@@ -22,8 +21,8 @@ setup(
     license="Apache2.0",
     classfiers=[
         "Intended Audience: Developers",
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
     ],
     keywords="ml ai databricks",
-    python_requires=">=3.6",
+    python_requires=">=3.7",
 )

@@ -4,7 +4,7 @@ from pmdarima.arima.auto import AutoARIMA
 from pmdarima.arima.arima import ARIMA
 from pmdarima.pipeline import Pipeline
 from pmdarima.preprocessing import FourierFeaturizer
-from diviner import GroupedPmdarima
+from diviner import GroupedPmdarima, PmdarimaUtils
 from diviner.utils.pmdarima_utils import (
     _PMDARIMA_MODEL_METRICS,
     _COMPOUND_KEYS,
@@ -61,6 +61,23 @@ def basic_pipeline(data):
         ]
     )
     return GroupedPmdarima("y", "ds", pipeline).fit(data.df, data.key_columns)
+
+
+@pytest.fixture(scope="module")
+def pipeline_override_d(data):
+    pipeline = Pipeline(steps=[("arima", AutoARIMA(out_of_sample_size=30))])
+    util = PmdarimaUtils(
+        df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
+    )
+    ndiffs = util.calculate_ndiffs(alpha=0.2, test="kpss", max_d=7)
+    nsdiffs = util.calculate_nsdiffs(m=7, test="ocsb", max_D=7)
+    return GroupedPmdarima("y", "ds", pipeline).fit(
+        df=data.df,
+        group_key_columns=data.key_columns,
+        ndiffs=ndiffs,
+        nsdiffs=nsdiffs,
+        silence_warnings=True,
+    )
 
 
 @pytest.fixture(scope="module")
@@ -143,7 +160,7 @@ def test_default_auto_arima_predict_conf_int(basic_pmdarima):
         "key0",
         "yhat_lower",
         "yhat_upper",
-        "ds"
+        "ds",
     }
 
     prediction = basic_pmdarima.predict(n_periods=forecast_cnt, return_conf_int=True)
@@ -152,59 +169,17 @@ def test_default_auto_arima_predict_conf_int(basic_pmdarima):
     assert set(prediction.columns).issubset(forecast_columns)
 
 
-@pytest.mark.parametrize("type_", ["additive", "multiplicative"])
-def test_group_trend_decomposition(data, grouped_obj, type_):
+def test_pmdarima_stationarity_optimized_overrides(data, pipeline_override_d):
 
-    decomposed = grouped_obj.decompose_groups(
-        data.df, data.key_columns, m=4, type_=type_
-    )
-    for col in {
-        "x",
-        "trend",
-        "seasonal",
-        "random",
-        "ds",
-        "key1",
-        "key0",
-        "grouping_key_columns",
-    }:
-        assert col in decomposed.columns
-    assert len(decomposed) == len(data.df)
+    ndiffs = PmdarimaUtils(
+        df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
+    ).calculate_ndiffs(alpha=0.5, test="kpss", max_d=7)
 
+    params = pipeline_override_d.get_model_params()
 
-def test_group_ndfiff_calculation(data, grouped_obj):
-
-    # Purposefully select an alpha that would drive a 'd' value very high
-    # (this value should never be used in practice)
-    ndiffs = grouped_obj.calculate_ndiffs(
-        data.df, data.key_columns, alpha=0.5, test="pp", max_d=2
-    )
-
-    assert len(ndiffs) == SERIES_TEST_COUNT
-    for k, v in ndiffs.items():
-        assert isinstance(k, tuple)
-        assert v <= 2
-
-
-def test_group_nsdiff_calculation(data, grouped_obj):
-
-    nsdiffs = grouped_obj.calculate_nsdiffs(
-        data.df, data.key_columns, m=365, test="ch", max_D=5
-    )
-
-    assert len(nsdiffs) == SERIES_TEST_COUNT
-    for k, v in nsdiffs.items():
-        assert isinstance(k, tuple)
-        assert v == 4  # Works with the algorithm used to generate the test data
-
-
-def test_group_is_constant_calculation(data, grouped_obj):
-
-    is_constants_check = grouped_obj.calculate_is_constant(data.df, data.key_columns)
-
-    assert len(is_constants_check) == SERIES_TEST_COUNT
-    for k, v in is_constants_check.items():
-        assert isinstance(k, tuple)
+    for idx, row in params.iterrows():
+        group = (row["key1"], row["key0"])
+        assert ndiffs.get(group) == row["d"]
         assert (
-            not v
-        )  # The algorithm that generates the data intentionally creates a trend
+            row["D"] == 0
+        )  # this isn't a seasonal model so the override shouldn't populate for 'D'

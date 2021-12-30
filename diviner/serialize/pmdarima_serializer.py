@@ -2,7 +2,13 @@ import pickle
 import json
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
-_PMDARIMA_CLASS_DICTS = {"model", "_max_datetime_per_group", "_datetime_freq_per_group"}
+_PMDARIMA_CLASS_DICTS = {
+    "model",
+    "_max_datetime_per_group",
+    "_datetime_freq_per_group",
+    "_ndiffs",
+    "_nsdiffs",
+}
 _PMDARIMA_CLASS_OBJECTS = {"_model_template"}
 
 

@@ -1,6 +1,9 @@
+from numpy.testing import assert_allclose
+import pytest
 from tests import data_generator
 from pmdarima.arima.auto import AutoARIMA
-from diviner import GroupedPmdarima
+from diviner import GroupedPmdarima, PmdarimaUtils
+from diviner.exceptions import DivinerException
 from diviner.utils.pmdarima_utils import (
     _extract_arima_model,
     _get_arima_params,
@@ -9,16 +12,22 @@ from diviner.utils.pmdarima_utils import (
     _construct_prediction_config,
 )
 
+SERIES_TEST_COUNT = 2
 
-def test_default_arima_fit_attribute_extraction():
 
-    data = data_generator.generate_test_data(
+@pytest.fixture(scope="module")
+def data():
+    test_data = data_generator.generate_test_data(
         column_count=2,
-        series_count=2,
-        series_size=2000,
-        start_dt="2020-01-01",
+        series_count=SERIES_TEST_COUNT,
+        series_size=365 * 4,
+        start_dt="2018-01-01",
         days_period=1,
     )
+    return test_data
+
+
+def test_pmdarima_default_arima_fit_attribute_extraction(data):
 
     arima_model = GroupedPmdarima(
         "y", "ds", model_template=AutoARIMA(out_of_sample_size=30)
@@ -42,7 +51,7 @@ def test_default_arima_fit_attribute_extraction():
             assert group_params[item] == 0
 
 
-def test_prediction_config_generation():
+def test_pmdarima_prediction_config_generation():
 
     group_keys = [("a", "z"), ("b", "z")]
 
@@ -62,3 +71,189 @@ def test_prediction_config_generation():
         assert row.get("alpha") == 0.7
         assert row.get("return_conf_int")
         assert not row.get("inverse_transform")
+
+
+@pytest.mark.parametrize("type_", ["additive", "multiplicative"])
+def test_pmdarima_utils_trend_decomposition(data, type_):
+
+    decomposed = PmdarimaUtils(
+        df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
+    ).decompose_groups(m=7, type_=type_)
+    for col in {
+        "x",
+        "trend",
+        "seasonal",
+        "random",
+        "ds",
+        "key1",
+        "key0",
+        "grouping_key_columns",
+    }:
+        assert col in decomposed.columns
+    assert len(decomposed) == len(data.df)
+
+
+def test_pmdarima_utils_ndiffs_calculation(data):
+
+    ndiffs = PmdarimaUtils(
+        df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
+    ).calculate_ndiffs(alpha=0.2, test="kpss", max_d=7)
+    assert len(ndiffs) == SERIES_TEST_COUNT
+    for k, v in ndiffs.items():
+        assert isinstance(k, tuple)
+        assert v <= 7
+
+
+def test_pmdarima_utils_nsdiffs_calculation(data):
+
+    nsdiffs = PmdarimaUtils(
+        df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
+    ).calculate_nsdiffs(
+        df=data.df, group_key_columns=data.key_columns, m=7, test="ocsb", max_D=7
+    )
+    assert len(nsdiffs) == SERIES_TEST_COUNT
+    for k, v in nsdiffs.items():
+        assert isinstance(k, tuple)
+        assert v <= 7
+
+
+def test_pmdarima_constancy_validation(data):
+
+    constancy = PmdarimaUtils(
+        df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
+    ).calculate_is_constant(data.df, data.key_columns)
+
+    assert len(constancy) == SERIES_TEST_COUNT
+    for value in constancy.values():
+        assert not value
+
+
+def test_pmdarima_ndiffs_override_class_args(data):
+
+    ndiffs = PmdarimaUtils(
+        df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
+    ).calculate_ndiffs(alpha=0.4, max_d=4)
+
+    base_template = AutoARIMA(d=10, out_of_sample_size=7)
+
+    model = GroupedPmdarima("y", "ds", base_template).fit(
+        df=data.df,
+        group_key_columns=data.key_columns,
+        ndiffs=ndiffs,
+        silence_warnings=True,
+    )
+
+    params = model.get_model_params()
+
+    for idx, row in params.iterrows():
+        assert row["d"] <= 4
+
+
+def test_pmdarima_calculate_acf_full_args(data):
+
+    acf_data = PmdarimaUtils(
+        df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
+    ).calculate_acf(unbiased=True, nlags=90, qstat=True, fft=True, alpha=0.1)
+
+    for group, payload in acf_data.items():
+        assert {"acf", "qstat", "pvalues", "confidence_intervals"}.issubset(
+            payload.keys()
+        )
+        assert len(payload.get("acf")) == 91
+        assert len(payload.get("qstat")) == 90
+        assert len(payload.get("confidence_intervals")) == 91
+        assert len(payload.get("pvalues")) == 90
+
+
+def test_pmdarima_calculate_acf_minimal_args(data):
+
+    acf_data = PmdarimaUtils(
+        df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
+    ).calculate_acf(unbiased=False, nlags=90, qstat=False, fft=False, alpha=None)
+    for group, payload in acf_data.items():
+        assert {"acf"}.issubset(payload.keys())
+        assert [
+            key not in payload.keys()
+            for key in ["qstat", "pvalues", "confidence_intervals"]
+        ]
+        assert len(payload.get("acf")) == 91
+
+
+def test_pmdarima_calculate_pacf_full_args(data):
+
+    pacf_data = PmdarimaUtils(
+        df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
+    ).calculate_pacf(nlags=90, method="yw", alpha=0.05)
+
+    for group, payload in pacf_data.items():
+        assert {"pacf", "confidence_intervals"}.issubset(payload.keys())
+        assert len(payload.get("pacf")) == 91
+        assert len(payload.get("confidence_intervals")) == 91
+
+
+def test_pmdarima_calculate_pacf_minimal_args(data):
+
+    pacf_data = PmdarimaUtils(
+        df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
+    ).calculate_pacf()
+
+    for group, payload in pacf_data.items():
+        assert {"pacf"}.issubset(payload.keys())
+        assert [key not in payload.keys() for key in ["confidence_intervals"]]
+        assert len(payload.get("pacf")) == 32
+
+
+def test_pmdarima_generate_diff(data):
+
+    diff = PmdarimaUtils(
+        df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
+    ).generate_diff(lag=2, differences=1)
+
+    for group, data in diff.items():
+        assert len(data["diff"]) == (365 * 4) - 2
+        assert data["series_start"] > 0
+        assert isinstance(data["series_start"], float)
+
+
+def test_pmdarima_reconstruct_series_from_diff_inv(data):
+
+    utils = PmdarimaUtils(
+        df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
+    )
+    diff = utils.generate_diff(lag=2, differences=1)
+
+    group_dfs = utils._group_df
+
+    inverted = utils.generate_diff_inversion(diff, lag=2, differences=1, recenter=True)
+
+    for group, data in group_dfs:
+
+        assert_allclose(data["y"], inverted.get(group), rtol=0.1)
+
+
+def test_pmdarima_diff_inv_fails_with_invalid_data(data):
+
+    utils = PmdarimaUtils(
+        df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
+    )
+    diff = utils.generate_diff(lag=1, differences=1)
+
+    with pytest.raises(
+        DivinerException, match="group_diff_data does not contain the key `diff`"
+    ):
+        diff_mod = {}
+        for key, value in diff.items():
+            diff_mod[key] = {"series_start": value.get("series_start")}
+        utils.generate_diff_inversion(
+            group_diff_data=diff_mod, lag=1, differences=1, recenter=True
+        )
+
+    with pytest.warns(
+        UserWarning, match="Recentering is not possible due to `series_start` missing"
+    ):
+        diff_mod = {}
+        for key, value in diff.items():
+            diff_mod[key] = {"diff": value.get("diff")}
+        utils.generate_diff_inversion(
+            group_diff_data=diff_mod, lag=1, differences=1, recenter=True
+        )

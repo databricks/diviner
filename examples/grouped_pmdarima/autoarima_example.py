@@ -1,4 +1,6 @@
+import numpy as np
 from pmdarima.arima.auto import AutoARIMA
+from pmdarima.model_selection import SlidingWindowForecastCV
 from examples.example_data_generator import generate_example_data
 from diviner import GroupedPmdarima
 
@@ -45,3 +47,15 @@ if __name__ == "__main__":
     print("\nPredictions:\n", "-" * 40)
     prediction = loaded_model.predict(n_periods=30, alpha=0.1, return_conf_int=True)
     print(prediction.to_string())
+
+    print("\nCross validation metric results:\n", "-" * 40)
+    cross_validator = SlidingWindowForecastCV(h=30, step=180, window_size=365)
+    cv_results = loaded_model.cross_validate(
+        df=training_data,
+        metrics=["mean_squared_error", "smape", "mean_absolute_error"],
+        cross_validator=cross_validator,
+        error_score=np.nan,
+        verbosity=3,
+    )
+
+    print(cv_results.to_string())

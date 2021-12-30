@@ -17,10 +17,10 @@ from diviner.scoring.prophet_cross_validate import (
 from diviner.utils.prophet_utils import (
     generate_future_dfs,
     _cross_validate_and_score_model,
-    _create_reporting_df,
     _extract_params,
 )
 from diviner.utils.common import (
+    create_reporting_df,
     _restructure_fit_payload,
     _validate_keys_in_df,
     _restructure_predictions,
@@ -147,7 +147,7 @@ class GroupedProphet(GroupedForecaster):
             raise DivinerException(
                 f"The grouping key '{group_key}' is not in the model instance."
             )
-        model = deepcopy(self.model[group_key])
+        model = deepcopy(self.model.get(group_key))
         raw_prediction = model.predict(df)
         raw_prediction.insert(
             0, self._master_key, raw_prediction.apply(lambda x: group_key, axis=1)
@@ -308,7 +308,7 @@ class GroupedProphet(GroupedForecaster):
             for group_key, model in self.model.items()
         }
 
-        return _create_reporting_df(scores, self._master_key, self._group_key_columns)
+        return create_reporting_df(scores, self._master_key, self._group_key_columns)
 
     def extract_model_params(self):
         """
@@ -322,7 +322,7 @@ class GroupedProphet(GroupedForecaster):
         model_params = {
             group_key: _extract_params(model) for group_key, model in self.model.items()
         }
-        return _create_reporting_df(
+        return create_reporting_df(
             model_params, self._master_key, self._group_key_columns
         )
 

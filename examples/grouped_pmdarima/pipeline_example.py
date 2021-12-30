@@ -1,6 +1,8 @@
+import numpy as np
 from pmdarima.arima.auto import AutoARIMA
 from pmdarima.pipeline import Pipeline
 from pmdarima.preprocessing import BoxCoxEndogTransformer
+from pmdarima.model_selection import RollingForecastCV
 from examples.example_data_generator import generate_example_data
 from diviner import GroupedPmdarima
 
@@ -32,7 +34,7 @@ if __name__ == "__main__":
         steps=[
             (
                 "box",
-                BoxCoxEndogTransformer(lmbda2=0.2, neg_action="raise", floor=1e-12),
+                BoxCoxEndogTransformer(lmbda2=0.4, neg_action="raise", floor=1e-12),
             ),
             ("arima", AutoARIMA(out_of_sample_size=60, max_p=4, max_q=4, max_d=4)),
         ]
@@ -54,3 +56,15 @@ if __name__ == "__main__":
     print("\nPredictions:\n", "-" * 40)
     prediction = loaded_model.predict(n_periods=30, alpha=0.2, return_conf_int=True)
     print(prediction.to_string())
+
+    print("\nCross validation metric results:\n", "-" * 40)
+    cross_validator = RollingForecastCV(h=30, step=365, initial=730)
+    cv_results = loaded_model.cross_validate(
+        df=training_data,
+        metrics=["mean_squared_error"],
+        cross_validator=cross_validator,
+        error_score=np.nan,
+        verbosity=3,
+    )
+
+    print(cv_results.to_string())

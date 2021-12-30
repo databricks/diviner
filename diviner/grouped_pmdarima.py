@@ -2,7 +2,12 @@ import inspect
 import os
 import warnings
 from copy import deepcopy
-from pmdarima.arima import decompose, ndiffs, nsdiffs, is_constant
+
+from pmdarima import ARIMA, AutoARIMA
+from pmdarima.pipeline import Pipeline
+from pmdarima.warnings import ModelFitWarning
+
+import numpy as np
 import pandas as pd
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 from diviner.model.base_model import GroupedForecaster
@@ -16,14 +21,14 @@ from diviner.utils.common import (
     _restructure_predictions,
     create_reporting_df,
     _get_last_datetime_per_group,
-    _get_datetime_freq_per_group
+    _get_datetime_freq_per_group,
 )
 from diviner.utils.pmdarima_utils import (
     _get_arima_params,
     _get_arima_training_metrics,
     _extract_arima_model,
     _generate_prediction_config,
-    _generate_prediction_datetime_series
+    _generate_prediction_datetime_series,
 )
 from diviner.data.pandas_group_generator import PandasGroupGenerator
 from diviner.data.utils.dataframe_utils import apply_datetime_index_to_groups
@@ -31,7 +36,6 @@ from diviner.exceptions import DivinerException
 
 
 class GroupedPmdarima(GroupedForecaster):
-
     def __init__(
         self,
         y_col,
@@ -83,17 +87,8 @@ class GroupedPmdarima(GroupedForecaster):
         self._predict_col = predict_col
         self._max_datetime_per_group = None
         self._datetime_freq_per_group = None
-
-    def _model_type_resolver(self, obj=None):
-
-        if not obj:
-            obj = self._model_template
-        try:
-            module = inspect.getmodule(obj).__name__
-            clazz = type(obj).__name__
-            return module, clazz
-        except AttributeError:
-            return None, None
+        self._ndiffs = None
+        self._nsdiffs = None
 
     def _extract_individual_model(self, group_key):
 
@@ -113,13 +108,76 @@ class GroupedPmdarima(GroupedForecaster):
             exog = group_df[self._exog_cols]
         else:
             exog = None
+
+        # Set 'd' term if pre-calculated with `PmdarimaUtils.calculate_ndiffs`
+        if self._ndiffs:
+            d_term = self._ndiffs.get(group_key, None)
+            if d_term:
+                if isinstance(model, ARIMA):
+                    setattr(model, "order", (model.order[0], d_term, model.order[2]))
+                elif isinstance(model, Pipeline):
+                    final_stage = model.steps[-1][1]
+                    if isinstance(final_stage, AutoARIMA):
+                        setattr(final_stage, "d", d_term)
+                    elif isinstance(final_stage, ARIMA):
+                        setattr(
+                            final_stage,
+                            "order",
+                            (final_stage.order[0], d_term, final_stage.order[2]),
+                        )
+                elif isinstance(model, AutoARIMA):
+                    setattr(model, "d", d_term)
+
+        # Set 'D' term if pre-calculated with `PmdarimaUtils.calculate_nsdiffs`
+        if self._nsdiffs:
+            sd_term = self._nsdiffs.get(group_key, None)
+            if sd_term:
+                if isinstance(model, ARIMA):
+                    setattr(
+                        model,
+                        "seasonal_order",
+                        (
+                            model.seasonal_order[0],
+                            sd_term,
+                            model.seasonal_order[2],
+                            model.seasonal_order[3],
+                        ),
+                    )
+                elif isinstance(model, Pipeline):
+                    final_stage = model.steps[-1][1]
+                    if isinstance(final_stage, AutoARIMA):
+                        setattr(final_stage, "D", sd_term)
+                    elif isinstance(final_stage, ARIMA):
+                        setattr(
+                            final_stage,
+                            "seasonal_order",
+                            (
+                                final_stage.seasonal_order[0],
+                                sd_term,
+                                final_stage.seasonal_order[2],
+                                final_stage.seasonal_order[3],
+                            ),
+                        )
+                elif isinstance(model, AutoARIMA):
+                    setattr(model, "D", sd_term)
+
         with warnings.catch_warnings():  # Suppress SARIMAX RuntimeWarning
             if silence_warnings:
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
                 warnings.filterwarnings("ignore", category=ConvergenceWarning)
+                warnings.filterwarnings("ignore", category=ModelFitWarning)
+                warnings.filterwarnings("ignore", category=UserWarning)
             return {group_key: model.fit(y=y, X=exog, **fit_kwargs)}
 
-    def fit(self, df, group_key_columns, silence_warnings=False, **fit_kwargs):
+    def fit(
+        self,
+        df,
+        group_key_columns,
+        ndiffs=None,
+        nsdiffs=None,
+        silence_warnings=False,
+        **fit_kwargs,
+    ):
         """
         Fit method for training a pmdarima model on the submitted normalized DataFrame.
         When initialized, the input DataFrame will be split into an iterable collection of
@@ -147,20 +205,31 @@ class GroupedPmdarima(GroupedForecaster):
                                   unique time series entry. For example, with the DataFrame
                                   referenced in the `df` param, group_key_columns could be:
                                   ('region', 'zone') or ('region') or ('country', 'region', 'zone')
+        :param ndiffs: overrides to the `d` ARIMA differencing term for stationarity enforcement.
+                       The structure of this argument is a dictionary in the form of:
+                       `{<group_key>: <d_term>}`. To calculate, use
+                       `diviner.PmdarimaUtils.calculate_ndiffs()`
+        :param nsdiffs: overrides to the `D` SARIMAX seasonal differencing term for seasonal
+                        stationarity enforcement.
+                        The structure of this argument is a dictionary in the form of:
+                       `{<group_key>: <D_term>}`. To calculate, use
+                       `diviner.PmdarimaUtils.calculate_nsdiffs()`
         :param silence_warnings: If True, removes SARIMAX and underlying optimizer warning message
                                  from stdout printing. With a sufficiently large nubmer of groups
                                  to process, the volume of these messages to stdout may become
                                  very large.
-        :param kwargs: fit_kwargs for pmdarima's ARIMA, AutoARIMA, or Pipeline stages overrides.
-                       For more information, see pmdarima docs:
-                       https://alkaline-ml.com/pmdarima/index.html
+        :param fit_kwargs: fit_kwargs for pmdarima's ARIMA, AutoARIMA, or Pipeline stages overrides.
+                           For more information, see pmdarima docs:
+                           https://alkaline-ml.com/pmdarima/index.html
         :return: object instance of GroupedPmdarima with the persisted fit model attached.
         """
 
-        #  TODO: allow for passed-in per-group 'd' and 'D' values from ndiffs and nsdiffs
-
         self._model_init_check()
         self._group_key_columns = group_key_columns
+        if ndiffs and isinstance(ndiffs, dict):
+            self._ndiffs = ndiffs
+        if nsdiffs and isinstance(nsdiffs, dict):
+            self._nsdiffs = nsdiffs
 
         _validate_keys_in_df(df, self._group_key_columns)
 
@@ -172,8 +241,12 @@ class GroupedPmdarima(GroupedForecaster):
             grouped_data, self._datetime_col
         )
 
-        self._max_datetime_per_group = _get_last_datetime_per_group(dt_indexed_group_data)
-        self._datetime_freq_per_group = _get_datetime_freq_per_group(dt_indexed_group_data)
+        self._max_datetime_per_group = _get_last_datetime_per_group(
+            dt_indexed_group_data
+        )
+        self._datetime_freq_per_group = _get_datetime_freq_per_group(
+            dt_indexed_group_data
+        )
 
         fit_model = [
             self._fit_individual_model(
@@ -186,7 +259,7 @@ class GroupedPmdarima(GroupedForecaster):
 
         return self
 
-    def _predict_single_group(self, row_entry, n_periods_col, exog, **kwargs):
+    def _predict_single_group(self, row_entry, n_periods_col, exog, **predict_kwargs):
 
         group_key = row_entry[self._master_key]
         return_conf_int = row_entry.get("return_conf_int", False)
@@ -200,7 +273,7 @@ class GroupedPmdarima(GroupedForecaster):
             return_conf_int=return_conf_int,
             alpha=alpha,
             inverse_transform=inverse_transform,
-            **kwargs,
+            **predict_kwargs,
         )
         if return_conf_int:
             prediction_raw = pd.DataFrame.from_records(prediction).T
@@ -214,11 +287,17 @@ class GroupedPmdarima(GroupedForecaster):
         else:
             prediction_df = pd.DataFrame.from_dict({self._predict_col: prediction})
         prediction_df[self._master_key] = prediction_df.apply(lambda x: group_key, 1)
-        prediction_df[self._datetime_col] = _generate_prediction_datetime_series(self._max_datetime_per_group.get(group_key), self._datetime_freq_per_group.get(group_key), periods)
+        prediction_df[self._datetime_col] = _generate_prediction_datetime_series(
+            self._max_datetime_per_group.get(group_key),
+            self._datetime_freq_per_group.get(group_key),
+            periods,
+        )
 
         return prediction_df
 
-    def _predict_groups(self, df, n_periods_col="n_periods", exog=None, **kwargs):
+    def _predict_groups(
+        self, df, n_periods_col="n_periods", exog=None, **predict_kwargs
+    ):
 
         self._fit_check()
         processing_data = PandasGroupGenerator(
@@ -226,7 +305,7 @@ class GroupedPmdarima(GroupedForecaster):
         )._get_df_with_master_key_column(df)
 
         prediction_collection = [
-            self._predict_single_group(row, n_periods_col, exog, **kwargs)
+            self._predict_single_group(row, n_periods_col, exog, **predict_kwargs)
             for idx, row in processing_data.iterrows()
         ]
         return _restructure_predictions(
@@ -240,7 +319,7 @@ class GroupedPmdarima(GroupedForecaster):
         return_conf_int=False,
         inverse_transform=True,
         exog=None,
-        **kwargs,
+        **predict_kwargs,
     ):
         """
         Prediction method for generating forecasts for each group that has been trained as part of
@@ -270,8 +349,8 @@ class GroupedPmdarima(GroupedForecaster):
         :param exog: Exogenous regressor components as a 2-D array.
                      Note: if the model is trained with exogenous regressor components, this
                      argument is required.
-        :param kwargs: Extra kwarg arguments for any of the transform stages of a Pipelie or for
-                       additional `predict` kwargs to the model instance.
+        :param predict_kwargs: Extra kwarg arguments for any of the transform stages of a Pipeline
+                       or for additional `predict` kwargs to the model instance.
                        Pipeline kwargs are specified in the manner of sklearn Pipelines (i.e.,
                        <stage_name>__<arg name>=<value>. e.g., to change the values of a fourier
                        transformer at prediction time, the override would be:
@@ -286,7 +365,7 @@ class GroupedPmdarima(GroupedForecaster):
             return_conf_int,
             inverse_transform,
         )
-        return self._predict_groups(prediction_config, exog=exog, **kwargs)
+        return self._predict_groups(prediction_config, exog=exog, **predict_kwargs)
 
     def get_metrics(self):
         """
@@ -319,6 +398,62 @@ class GroupedPmdarima(GroupedForecaster):
             params_extract[group] = _get_arima_params(arima_model)
         return create_reporting_df(
             params_extract, self._master_key, self._group_key_columns
+        )
+
+    def cross_validate(
+        self, df, metrics, cross_validator, error_score=np.nan, verbosity=0
+    ):
+        """
+        Method for performing cross validation on each group of the fit model.
+        The supplied cross_validator to this method will be used to perform either rolling or
+        shifting window prediction validation throughout the data set. Windowing behavior for
+        the cross validation must be defined and configured through the cross_validator that is
+        submitted.
+        See: https://alkaline-ml.com/pmdarima/modules/classes.html#cross-validation-split-utilities
+        for details on the underlying implementation of cross validation with pmdarima.
+
+        :param df: A DataFrame that contains the endogenous series and the grouping key columns
+                   that were defined during training. Any missing key entries will not be scored.
+                   Note that each group defined within the model will be retrieved from this
+                   DataFrame. keys that do not exist will raise an Exception.
+        :param metrics: A list of metric names or string of single metric name to use for
+                        cross validation metric calculation.
+        :param cross_validator: A cross validator instance from `pmdarima.model_selection`
+                               (`RollingForecastCV` or `SlidingWindowForecastCV`).
+                               Note: setting low values of `h` or `step` will dramatically increase
+                               execution time).
+        :param error_score: Default value to assign to a score calculation if an error occurs
+                            in a given window iteration.
+                            Default: `np.nan` (silent ignore of the failure)
+        :param verbosity: print verbosity level for pmdarima's cross validation stages.
+                          Default: 0 (no printing to stdout)
+        :return: Pandas DataFrame containing the group information and calculated cross validation
+                 metrics for each group.
+        """
+
+        from diviner.scoring.pmdarima_cross_validate import (
+            _cross_validate_grouped_pmdarima,
+        )
+
+        self._fit_check()
+        group_data = PandasGroupGenerator(
+            self._group_key_columns
+        ).generate_processing_groups(df)
+
+        dt_group_data = apply_datetime_index_to_groups(group_data, self._datetime_col)
+        cv_results = _cross_validate_grouped_pmdarima(
+            self.model,
+            dt_group_data,
+            self._y_col,
+            metrics,
+            cross_validator,
+            error_score,
+            self._exog_cols,
+            verbosity,
+        )
+
+        return create_reporting_df(
+            cv_results, self._master_key, self._group_key_columns
         )
 
     def save(self, path: str):
@@ -356,151 +491,3 @@ class GroupedPmdarima(GroupedForecaster):
             if key not in init_args:
                 setattr(instance, key, value)
         return instance
-
-    def _decompose_group(self, group_df, group_key, m, type_, filter_):
-
-        group_decomposition = decompose(
-            x=group_df[self._y_col], type_=type_, m=m, filter_=filter_
-        )
-        group_result = {
-            key: getattr(group_decomposition, key)
-            for key in group_decomposition._fields
-        }
-        output_df = pd.DataFrame.from_dict(group_result)
-        output_df[self._datetime_col] = group_df[self._datetime_col]
-        output_df[self._master_key] = output_df.apply(lambda x: group_key, 1)
-        return output_df
-
-    def decompose_groups(self, df, group_key_columns, m, type_, filter_=None):
-        """
-        Utility method that wraps `pmdarima.arima.decompose()` for each group within the
-        passed-in DataFrame.
-        Note: decomposition works best if the total number of entries within the series being
-        decomposed is a multiple of the `m` parameter value.
-
-        :param df: A normalized group-defined data set from which to decompose the elements of
-                   the endogenous series into columns: {'trend', 'seasonal', and 'random'} that
-                   represent the primary components of the series.
-        :param group_key_columns: The columns in the `df` argument that define, in aggregate, a
-                                  unique time series entry.
-        :param m: The frequency of the endogenous series. (i.e., for daily data, m might be '7'
-                  for estimating a weekly seasonality, or '365' for yearly seasonality effects.)
-        :param type_: The type of decomposition to perform. One of: ['additive', 'multiplicative']
-                      See:
-        :param filter_: Optional Array for performing convolution. This is specified as a
-                        filter for coefficients (the Moving Average and/or
-                        Auto Regressor coefficients) in reverse time order in order to filter out
-                        a seasonal component.
-                        Default: None
-        :return: Pandas DataFrame with the decomposed trends for each group.
-        """
-        grouped_df = PandasGroupGenerator(group_key_columns).generate_processing_groups(
-            df
-        )
-        group_decomposition = {
-            group_key: self._decompose_group(group_df, group_key, m, type_, filter_)
-            for group_key, group_df in grouped_df
-        }
-        return _restructure_predictions(
-            group_decomposition, group_key_columns, self._master_key
-        )
-
-    def calculate_ndiffs(
-        self, df, group_key_columns, alpha=0.05, test="kpss", max_d=2
-    ):
-        """
-        Utility method for determining the optimal `d` value for ARIMA ordering. Calculating this
-        as a fixed value can dramatically increase the tuning time for pmdarima.
-
-        :param df: A normalized group-defined data set from which to calculate per-group optimized
-                   values of the `d` component of the ARIMA ordering of `('p', 'd', 'q')`
-        :param group_key_columns: The columns in the `df` argument that define, in aggregate, a
-                                  unique time series entry.
-        :param alpha: significance level for determining if a pvalue used for testing a
-                      value of 'd' is significant or not.
-                      Default: 0.05
-        :param test: Type of unit test for stationarity determination to use.
-                     Supported values: ['kpss', 'adf', 'pp']
-                     See:
-                     https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.arima.KPSSTest.\
-                     html#pmdarima.arima.KPSSTest
-                     https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.arima.PPTest.\
-                     html#pmdarima.arima.PPTest
-                     https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.arima.ADFTest.\
-                     html#pmdarima.arima.ADFTest
-                     Default: 'kpss'
-        :param max_d: The max value for `d` to test.
-        :return: Dictionary of {<group_key>: <optimal 'd' value>}
-        """
-        grouped_df = PandasGroupGenerator(group_key_columns).generate_processing_groups(
-            df
-        )
-
-        group_ndiffs = {
-            group: ndiffs(
-                x=group_df[self._y_col], alpha=alpha, test=test, max_d=max_d
-            )
-            for group, group_df in grouped_df
-        }
-
-        return group_ndiffs
-
-    def calculate_nsdiffs(
-        self, df, group_key_columns, m, test="ocsb", max_D=2
-    ):
-        """
-        Utility method for determining the optimal `D` value for seasonal SARIMAX ordering.
-
-        :param df: A normalized group-defined data set from which to calculate per-group optimized
-                   values of the `D` component of the SARIMAX seasonal ordering of
-                   `('P', 'D', 'Q', 's')`
-        :param group_key_columns: The columns in the `df` argument that define, in aggregate, a
-                                  unique time series entry.
-        :param m: The number of seasonal periods in the series.
-        :param test: Type of unit test for seasonality.
-                     Supported tests: ['ocsb', 'ch']
-                     See:
-                     https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.arima.OCSBTest.\
-                     html#pmdarima.arima.OCSBTest
-                     https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.arima.CHTest.\
-                     html#pmdarima.arima.CHTest
-                     Default: 'ocsb'
-        :param max_D: Maximum number of seasonal differences to test for.
-                      Default: 2
-        :return: Dictionary of {<group_key>: <optimal 'D' value>}
-        """
-
-        grouped_df = PandasGroupGenerator(group_key_columns).generate_processing_groups(
-            df
-        )
-        group_nsdiffs = {
-            group: nsdiffs(
-                x=group_df[self._y_col], m=m, max_D=max_D, test=test
-            )
-            for group, group_df in grouped_df
-        }
-
-        return group_nsdiffs
-
-    def calculate_is_constant(self, df, group_key_columns):
-        """
-        Utility method for determining whether or not a series is composed of all of the same
-        elements or not. (e.g. a series of {1, 2, 3, 4, 5, 1, 2, 3} will return 'False', while
-        a series of {1, 1, 1, 1, 1, 1, 1, 1, 1} will return 'True')
-
-        :param df: A normalized group-defined data set from which to calculate constancy
-        :param group_key_columns: The columns in the `df` argument that define, in aggregate, a
-                                  unique time series entry.
-        :return: Dictionary of {<group_key>: <Boolean constancy check>}
-        """
-        grouped_df = PandasGroupGenerator(group_key_columns).generate_processing_groups(
-            df
-        )
-        group_constant_check = {
-            group: is_constant(group_df[self._y_col]) for group, group_df in grouped_df
-        }
-        return group_constant_check
-
-    def cross_validate(self):
-
-        raise NotImplementedError

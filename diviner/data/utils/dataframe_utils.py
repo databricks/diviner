@@ -4,7 +4,8 @@ import pandas as pd
 def _apply_datetime_index(df: pd.DataFrame, datetime_col: str) -> pd.DataFrame:
     """
     Application of datetime index to a single DataFrame to support format requirements for
-    Statsmodels timeseries models.
+    certain timeseries models.
+
     :param df: An individual group's DataFrame
     :param datetime_col: The column that defines the datetime data for the series
     :return: An individual group's series with the temporal component encoded as the index.
@@ -19,9 +20,9 @@ def _apply_datetime_index(df: pd.DataFrame, datetime_col: str) -> pd.DataFrame:
 
 def apply_datetime_index_to_groups(grouped_data, datetime_col: str):
     """
-    Statsmodels requires that the series information temporal information is encoded in the
-    index. This utility function will strip the datetime column from the submitted dataframe,
+    Utility function to strip the datetime column from the submitted dataframe,
     infer the frequency, and apply this as the DataFrame index, preserving the frequency data.
+
     :param grouped_data: The grouped structure from
                          `PandasGroupGenerator.generate_processing_groups`, consisting of a
                          collection of tuples of (master_group_key, DataFrame)
