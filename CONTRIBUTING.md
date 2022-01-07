@@ -4,7 +4,7 @@ Contributions are licensed on a license-in/license-out basis.
 # Contributing Guide
 
 ## Communication
-Before starting work on a major feature, please reach out to us via GitHub, Slack, email, etc. We will make sure no one else is already working on it and ask you to open a GitHub issue.
+Before starting work on a major feature, please reach out to us via GitHub by filing an issue. We will make sure no one else is already working on it and ask you to open a GitHub issue.
 A "major feature" is defined as any change that is > 100 LOC altered (not including tests), or changes any user-facing behavior, API signature, or introduces a new wrapped grouped model implementation.
 We will use the GitHub issue to discuss the feature and come to an agreement on the design approach and help to answer any questions you may have on implementation details or designs.
 The GitHub review process for major features is also important so that organizations with commit access can come to agreement on design.

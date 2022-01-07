@@ -71,14 +71,12 @@ class GroupedProphet(GroupedForecaster):
         the `_group_key_columns` submitted.
         When initiated, the input DataFrame (`df`) will be split into an iterable collection
         that represents a 'core' series to be fit against.
-
         This `fit` method is a per-group wrapper around Prophet's `fit()` implementation. See:
         https://facebook.github.io/prophet/docs/quick_start.html for information on the basic
         API, as well as links to the source code that will demonstrate all of the options
         available for overriding default functionality.
         For a full description of all parameters that are available to the optimizer, run the
         following in a shell:
-
         ```
         import pystan
         help(pystan.StanModel.optimizing)
@@ -87,28 +85,27 @@ class GroupedProphet(GroupedForecaster):
         :param df: Normalized pandas DataFrame containing _group_key_columns, a 'ds' column, and
                    a target 'y' column.
                    An example normalized data set to be used in this method:
-
-                   |region     |zone|ds          |y     |
-                   |'northeast'|1   |"2021-10-01"|1234.5|
-                   |'northeast'|2   |"2021-10-01"|3255.6|
-                   |'northeast'|1   |"2021-10-02"|1255.9|
-
+                   -region     -zone -ds           -y     -
+                   -'northeast'-1    -'2021-10-01' -1234.5-
+                   -'northeast'-2    -'2021-10-01' -3255.6-
+                   -'northeast'-1    -'2021-10-02' -1255.9-
         :param group_key_columns: The columns in the `df` argument that define, in aggregate, a
                                   unique time series entry. For example, with the DataFrame
-                                  referenced in the `df` param, _group_key_columns could be:
+                                  referenced in the `df` param, group_key_columns could be:
                                   ('region', 'zone')
                                   Specifying an incomplete grouping collection, while valid
                                   through this API (i.e., ('region')), can cause serious problems
                                   with any forecast that is built with this API. Ensure that all
                                   relevant keys are defined in the input `df` and declared in this
-                                  param to ensure that the appropriate per-univariate series data
+                                  param to ensure that the appropriate per univariate series data
                                   is used to train each model.
-        :param kwargs: overrides for underlying Prophet `.fit()` **kwargs (i.e., optimizer backend
-                        library configuration overrides) for further information, see:
-                        (https://facebook.github.io/prophet/docs/diagnostics.html\
-                        #hyperparameter-tuning)
+        :param kwargs: overrides for underlying Prophet `.fit()` kwargs (i.e., optimizer backend
+                       library configuration overrides) for further information, see:
+                       (https://facebook.github.io/prophet/docs/diagnostics.html\
+                       #hyperparameter-tuning)
         :return: object instance (self) of GroupedProphet
         """
+
         self._model_init_check()
         self._group_key_columns = group_key_columns
 
@@ -177,11 +174,10 @@ class GroupedProphet(GroupedForecaster):
         for each that are passed in to this method. The structure of the DataFrame submitted to
         this method is the same normalized format that `.fit()` takes as a DataFrame argument.
         i.e.:
-
-        |region     |zone|ds          |
-        |'northeast'|1   |"2021-10-01"|
-        |'northeast'|2   |"2021-10-01"|
-        |'northeast'|1   |"2021-10-02"|
+        -region     -zone -ds          -
+        -'northeast'-1    -"2021-10-01"-
+        -'northeast'-2    -"2021-10-01"-
+        -'northeast'-1    -"2021-10-02"-
 
         :param df: Normalized DataFrame consisting of grouping key entries and the dates to
                    forecast for each group.
@@ -268,12 +264,14 @@ class GroupedProphet(GroupedForecaster):
         """
         Metric scoring method that will run backtesting cross validation scoring for each
         time series specified within the model after a `.fit()` has been performed.
-        note: If the configuration overrides for the model during `fit()` set
+
+        Note: If the configuration overrides for the model during `fit()` set
         `uncertainty_samples=0`, the metric `coverage` will be removed from metrics calculation,
         saving a great deal of runtime overhead since the prediction errors (yhat_upper, yhat_lower)
         will not be calculated.
-        note: overrides to functionality of both `cross_validation()` and `performance_metrics()`
-          within Prophet's `diagnostics` module are handled here as kwargs.
+
+        Note: overrides to functionality of both `cross_validation()` and `performance_metrics()`
+        within Prophet's `diagnostics` module are handled here as kwargs.
         These arguments in this method's signature are directly passed, per model, to prophet's
         `cross_validation` module.
 
@@ -286,20 +284,22 @@ class GroupedProphet(GroupedForecaster):
                         note: The `coverage` metric will be removed if error estiamtes are not
                         configured to be calculated as part of the Prophet `.fit()` method by
                         setting `uncertainty_samples=0` within the GroupedProphet `.fit()` method.
-         :param period: the periodicity of how often a windowed validation will occur. Default is
-                        0.5 * horizon value.
+        :param period: the periodicity of how often a windowed validation will occur. Default is
+                       0.5 * horizon value.
         :param initial: The minimum amount of training data to include in the first cross validation
                         window.
         :param parallel: mode of computing cross validation statistics.
-                        Supported modes: (None, "processes", or "threads")
+                         Supported modes: (None, "processes", or "threads")
         :param cutoffs: List of pd.Timestamp values that specify cutoff overrides to be used in
                         conducting cross validation.
         :param kwargs: cross validation overrides to Prophet's
-                      `prophet.diagnostics.cross_validation()` and
-                      `prophet.diagnostics.performance_metrics()` functions
+                       `prophet.diagnostics.cross_validation()` and
+                       `prophet.diagnostics.performance_metrics()` functions
+
         :return: A consolidated Pandas DataFrame containing the specified metrics
                  to test as columns with each row representing a group.
         """
+
         self._fit_check()
         scores = {
             group_key: _cross_validate_and_score_model(
@@ -311,6 +311,7 @@ class GroupedProphet(GroupedForecaster):
         return _create_reporting_df(scores, self._master_key, self._group_key_columns)
 
     def extract_model_params(self):
+
         """
         Utility method for extracting all model parameters from each model within the processed
         groups.
@@ -318,6 +319,7 @@ class GroupedProphet(GroupedForecaster):
         :return: A consolidated Pandas DataFrame containing the model parameters as columns
                  with each row entry representing a group.
         """
+
         self._fit_check()
         model_params = {
             group_key: _extract_params(model) for group_key, model in self.model.items()
@@ -335,21 +337,23 @@ class GroupedProphet(GroupedForecaster):
         '2021-01-02 00:01:00' and will continue at a 1 day frequency for `horizon` number of
         entries.
         This implementation wraps the Prophet library's
-          `prophet.forecaster.Prophet().make_future_dataframe()` method.
+        `prophet.forecaster.Prophet().make_future_dataframe()` method.
 
         Note: This will generate a forecast for each group that was present in the
-          model `.fit()` input DataFrame. Time horizon values are dependent on the per-group
-          'ds' values for each group, which may result in different datetime values if the source
-          fit DataFrame did not have consistent datetime values within the 'ds' column for each
-          group.
+        model `.fit()` input DataFrame. Time horizon values are dependent on the per-group
+        'ds' values for each group, which may result in different datetime values if the source
+        fit DataFrame did not have consistent datetime values within the 'ds' column for each
+        group.
 
         :param horizon: The number of row events to forecast
         :param frequency: The frequency (periodicity) of Pandas date_range format
                           (i.e., 'D', 'M', 'Y')
-        note see for full listing of available strings:
-          https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+                          note see for full listing of available strings:
+                          (https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.\
+                          html#offset-aliases)
         :return: A consolidated (unioned) single DataFrame of forecasts for all groups
         """
+
         self._fit_check()
         grouped_data = generate_future_dfs(self.model, horizon, frequency)
 
