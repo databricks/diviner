@@ -8,9 +8,9 @@ forecasting projects that involve the predictions of many discrete independent e
 
 |docs| |pypi| |license| |downloads|
 
-.. |docs| image:: https://img.shields.io/badge/docs-latest-success.svg
-    :target: https://diviner.readthedocs.io/en/latest/index.html
-    :alt: Latest Docs
+.. image:: https://readthedocs.org/projects/databricks-diviner/badge/?version=latest
+    :target: https://databricks-diviner.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation 
 
 .. |pypi| image:: https://img.shields.io/badge/pypi/v/diviner.svg
     :target: https://pypi.org/project/diviner/
@@ -70,12 +70,12 @@ Install Diviner from PyPi via ``pip install diviner``
 Documentation
 -------------
 
-Documentation, Examples, and Tutorials for Diviner can be found `here <https://diviner.readthedocs.io/en/latest/index.html>`_.
+Documentation, Examples, and Tutorials for Diviner can be found `here <https://databricks-diviner.readthedocs.io/en/latest/index.html>`_.
 
 Community & Contributing
 ------------------------
 
-For assistance with Diviner, see the `docs <https://diviner.readthedocs.io/en/latest/index.html>`_.
+For assistance with Diviner, see the `docs <https://databricks-diviner.readthedocs.io/en/latest/index.html>`_.
 
 Contributions to Diviner are welcome. To file a bug, request a new feature, or to contribute a feature request, please
 open a GitHub issue. The team will work with you to ensure that your contributions are evaluated and appropriate
