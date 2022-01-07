@@ -54,8 +54,11 @@ Grouped Modeling Wrappers
 -------------------------
 
 Currently, Diviner supports the following open source libraries for forecasting at scale:
+
 * `prophet<https://facebook.github.io/prophet/docs/quick_start.html>`_
+
 * `statsmodels<https://www.statsmodels.org/stable/index.html>`_
+
 * `pmdarima<https://alkaline-ml.com/pmdarima/index.html>`_
 
 Installing
