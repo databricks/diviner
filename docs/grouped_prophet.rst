@@ -62,23 +62,24 @@ Class signature:
 
 .. autoclass:: diviner.GroupedProphet
     :members:
+
 .. _fit:
 
 Model fitting
 ^^^^^^^^^^^^^
 
-In order to fit a :py:class:`diviner.GroupedProphet` model instance, the :py:meth:`diviner.GroupedProphet.fit()`
+In order to fit a :py:class:`GroupedProphet <diviner.GroupedProphet>` model instance, the :py:meth:`fit <diviner.GroupedProphet.fit>`
 method is used. Calling this method will process the input ``DataFrame`` to create a grouped execution collection,
 fit a ``Prophet`` model on each individual series, and persist the trained state of each group's model to the
 object instance.
 
-The required arguments for the :py:meth:`diviner.GroupedProphet.fit()` method are:
+The required arguments for the :py:meth:`fit <diviner.GroupedProphet.fit>` method are:
 
 df
     A 'normalized' DataFrame that contains an endogenous regressor column (the 'y' column), a date (or datetime) column
     (that defines the ordering, periodicity, and frequency of each series (if this column is a string, the frequency will
     be inferred)), and grouping column(s) that define the discrete series to be modeled. For further information
-    on the structure of this ``DataFrame``, see the :ref:`quickstart guide<quickstart>`
+    on the structure of this ``DataFrame``, see the :ref:`quickstart guide <quickstart>`
 
 group_key_columns
     The names of the columns within ``df`` that, when combined (in order supplied) define distinct series. See the
@@ -94,11 +95,12 @@ Example:
 .. code-block:: python
 
     grouped_prophet_model = GroupedProphet().fit(df, ["country", "region"])
+
 .. _forecast:
 
 Forecast
 ^^^^^^^^
-The :py:meth:`diviner.GroupedProphet.forecast()` method is the 'primary means' of generating future forecast
+The :py:meth:`forecast <diviner.GroupedProphet.forecast>` method is the 'primary means' of generating future forecast
 predictions. For each group that was trained in the :ref:`fit` of the grouped model,
 a value of time periods is predicted based upon the last event date (or datetime) from each series' temporal
 termination.
@@ -176,7 +178,7 @@ Usage of this method with the above specified df would generate 4 individual pre
 
 Save
 ^^^^
-Supports saving a :py:class:`diviner.GroupedProphet` model that has been :py:meth:`diviner.GroupedProphet.fit()`.
+Supports saving a :py:class:`GroupedProphet <diviner.GroupedProphet>` model that has been :py:meth:`fit <diviner.GroupedProphet.fit>`.
 The serialization of the model instance does not rely on pickle or cloudpickle, rather a straight-forward json
 serialization.
 
@@ -187,8 +189,8 @@ serialization.
 
 Load
 ^^^^
-Loading a saved :py:class:`diviner.GroupedProphet` model is done through the use of a class method. The
-:py:meth:`diviner.GroupedProphet.load()` method is called as below:
+Loading a saved :py:class:`GroupedProphet <diviner.GroupedProphet>` model is done through the use of a class method. The
+:py:meth:`load <diviner.GroupedProphet.load>` method is called as below:
 
 .. code-block:: python
 
@@ -206,7 +208,7 @@ Utilities
 
 Parameter Extraction
 ^^^^^^^^^^^^^^^^^^^^
-The method :py:meth:`diviner.GroupedProphet.extract_model_params()` is a utility that extracts the tuning parameters
+The method :py:meth:`extract_model_params <diviner.GroupedProphet.extract_model_params>` is a utility that extracts the tuning parameters
 from each individual model from within the :ref:`model's <api>` container and returns them as a single DataFrame.
 Columns are the parameters from the models, while each row is an individual group's Prophet model's parameter values.
 Having a single consolidated extraction data structure eases the historical registration of model performance and
@@ -269,9 +271,9 @@ An example extract from a 2-group model (cast to a dictionary from the ``Pandas 
 Cross Validation and Scoring
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The primary method of evaluating model performance across all groups is by using the method
-:py:meth:`diviner.GroupedProphet.cross_validate_and_score()`. Using this method from a ``GroupedProphet`` instance
+:py:meth:`cross_validate_and_score <diviner.GroupedProphet.cross_validate_and_score>`. Using this method from a ``GroupedProphet`` instance
 that has been fit will perform backtesting of each group's model using the training data set supplied when the
-:py:meth:`diviner.GroupedProphet.fit()` method was called.
+:py:meth:`fit <diviner.GroupedProphet.fit>` method was called.
 
 
 The return type of this method is a single consolidated ``Pandas DataFrame`` that contains metrics as columns with
@@ -390,15 +392,15 @@ the cross validation window scores across time horizon splits.
 
 Performance Metrics
 ^^^^^^^^^^^^^^^^^^^
-The :py:meth:`diviner.GroupedProphet.calculate_performance_metrics()` method is a debugging tool that wraps the
-function :py:meth:`prophet.diagnostics.performance_metrics()` from ``Prophet``. Usage of this method will generate
+The :py:meth:`calculate_performance_metrics <diviner.GroupedProphet.calculate_performance_metrics>` method is a debugging tool that wraps the
+function :py:meth:`performance_metrics <https://facebook.github.io/prophet/docs/diagnostics.html>`_ from ``Prophet``. Usage of this method will generate
 the defined metric scores for each cross validation window, returning a dictionary of
 ``{<group_key>: <DataFrame of metrics for each window>}``
 
 Method arguments:
 
 cv_results
-    The output of :py:meth:`diviner.GroupedProphet.cross_validate()`.
+    The output of :py:meth:`cross_validate <diviner.GroupedProphet.cross_validate>`.
 
 metrics
     Optional subset list of metrics. See the signature for :ref:`cross_validate_and_score() <cv_score>` for supported

@@ -194,7 +194,7 @@ example, does not, such as:
 Basic Example
 -------------
 To illustrate how to build forecasts for our country sales data above, here is an example of building a grouped
-forecast for each of the cities using the :ref:`GroupedProphet API<grouped_prophet>`.
+forecast for each of the cities using the :ref:`GroupedProphet API <grouped_prophet>`.
 
 .. code-block:: python
 
@@ -225,4 +225,4 @@ Following the model building, a 30 day forecast was generated (returned as a sta
 
 .. note::
     For more in-depth examples (including per-group parameter extraction, cross validation metrics results, and serialization),
-    see the :ref:`examples<tutorials-and-examples>`.
+    see the :ref:`examples <tutorials-and-examples>`.

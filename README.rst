@@ -37,6 +37,7 @@ applicable, here is a non-exhaustive list of projects that it would fit well as 
 * Predicting electrical demand per neighborhood (or household) in a multi-state region
 
 Each of these examples has a *common theme*:
+
 * The data is temporally homogenous (all of the data is collected daily, hourly, weekly, etc.).
 * There is a large number of individual models that need to be built due to the cardinality of the data.
 * There is no guarantee of seasonal, trend, or residual homogeneity in each series.
@@ -55,11 +56,11 @@ Grouped Modeling Wrappers
 
 Currently, Diviner supports the following open source libraries for forecasting at scale:
 
-* `prophet<https://facebook.github.io/prophet/docs/quick_start.html>`_
+* `prophet <https://facebook.github.io/prophet/docs/quick_start.html>`_
 
-* `statsmodels<https://www.statsmodels.org/stable/index.html>`_
+* `statsmodels <https://www.statsmodels.org/stable/index.html>`_
 
-* `pmdarima<https://alkaline-ml.com/pmdarima/index.html>`_
+* `pmdarima <https://alkaline-ml.com/pmdarima/index.html>`_
 
 Installing
 ----------
@@ -69,13 +70,13 @@ Install Diviner from PyPi via ``pip install diviner``
 Documentation
 -------------
 
-Documentation, Examples, and Tutorials for Diviner can be found `here<https://diviner.readthedocs.io/en/latest/index.html>`_.
+Documentation, Examples, and Tutorials for Diviner can be found `here <https://diviner.readthedocs.io/en/latest/index.html>`_.
 
 Community & Contributing
 ------------------------
 
-For assistance with Diviner, see the `docs<https://diviner.readthedocs.io/en/latest/index.html>`_.
+For assistance with Diviner, see the `docs <https://diviner.readthedocs.io/en/latest/index.html>`_.
 
 Contributions to Diviner are welcome. To file a bug, request a new feature, or to contribute a feature request, please
 open a GitHub issue. The team will work with you to ensure that your contributions are evaluated and appropriate
-feedback is provided. See :ref:`contributing guidelines<../CONTRIBUTING.md>`_.
+feedback is provided. See :ref:`contributing guidelines <../CONTRIBUTING.md>`_.
