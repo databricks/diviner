@@ -25,12 +25,18 @@ class PandasGroupGenerator(BaseGroupGenerator):
         to generate the individualized forecasting models for each master key group.
     """
 
-    def __init__(self, group_key_columns: Tuple):
+    def __init__(self, group_key_columns: Tuple, datetime_col, y_col):
         """
         :param group_key_columns: Grouping columns that a combination of which designates a
-                                  combination of 'ds' and 'y' that represent a distinct series
+                                  combination of 'ds' and 'y' that represent a distinct series.
+        :param datetime_col: The name of the column that contains the date (datetime) values for
+                             each series.
+        :param y_col: The endogenous regressor element of the series. This is the value that is
+                      used for training and is the element that is intending to be forecast.
         """
         self._group_key_columns = group_key_columns
+        self._datetime_col = datetime_col
+        self._y_col = y_col
         super().__init__(group_key_columns)
 
     def _get_df_with_master_key_column(self, df) -> pd.DataFrame:
@@ -78,7 +84,7 @@ class PandasGroupGenerator(BaseGroupGenerator):
         iterable collection of key -> DataFrame representation.
 
         For example, after adding the grouping_key column from `_create_master_key_column()`,
-        the DataFrame will look thusly:
+        the DataFrame will look like this:
 
         |region     |zone|ds          |y     |grouping_key     |
         |'northeast'|1   |"2021-10-01"|1234.5|('northeast', 1) |
@@ -99,6 +105,34 @@ class PandasGroupGenerator(BaseGroupGenerator):
 
         :param df: Normalized DataFrame that contains the columns defined in instance attribute
                    `_group_key_columns` within its schema.
+        :return: List(tuple(master_group_key, df)) the processing collection of DataFrames
+                 coupled with their group identifier.
+        """
+
+        master_key_generation = self._get_df_with_master_key_column(df)
+
+        group_consolidation_df = (
+            master_key_generation.groupby([self._master_group_key, self._datetime_col])[
+                self._y_col
+            ]
+            .agg("sum")
+            .reset_index()
+        )
+
+        grouped_data = list(
+            dict(tuple(group_consolidation_df.groupby(self._master_group_key))).items()
+        )
+
+        return grouped_data
+
+    def generate_prediction_groups(self, df):
+        """
+        Method for generating the data set collection required to run a manual by-date (datetime)
+        prediction for arbitrary dates and key groupings.
+
+        :param df: Normalized DataFrame that contains the columns defined in instance attribute
+                   `_group_key_columns` within its schema and the dates for prediction within the
+                   `datetime_col` field.
         :return: List(tuple(master_group_key, df)) the processing collection of DataFrames
                  coupled with their group identifier.
         """
