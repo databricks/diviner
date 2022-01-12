@@ -75,4 +75,4 @@ For assistance with Diviner, see the `docs <https://databricks-diviner.readthedo
 Contributions to Diviner are welcome. To file a bug, request a new feature, or to contribute a feature request, please
 open a GitHub issue. The team will work with you to ensure that your contributions are evaluated and appropriate
 feedback is provided. See the
-`contributing guidelines <https://github.com/databricks/diviner/blob/docs/CONTRIBUTING.md>`_ for submission guidance.
+`contributing guidelines <https://github.com/databricks/diviner/tree/main/CONTRIBUTING.rst>`_ for submission guidance.
