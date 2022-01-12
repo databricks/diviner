@@ -20,8 +20,9 @@ these common use cases that rely on the `Prophet <https://facebook.github.io/pro
 
 Grouped Prophet API
 -------------------
-In order to create a ``GroupedProphet`` instance, there are no required attributes to define. Utilizing the default
-values will, as with the underlying ``Prophet`` library, utilize the default values to perform model fitting.
+In order to create a :py:class:`GroupedProphet <diviner.GroupedProphet>` instance, there are no required attributes to
+define. Utilizing the default values will, as with the underlying ``Prophet`` library, utilize the default values to
+perform model fitting.
 However, there are arguments that can be overridden which are pass-through values to the individual ``Prophet``
 instances that are created for each group. Since these are ``**kwargs`` entries, the names will be argument names for
 the respective arguments in ``Prophet``.
@@ -121,7 +122,7 @@ The frequency abbreviations that are allowed can be found
     being called. Setting this value to `0` will eliminate error estimates and will dramatically increase the speed of
     training, prediction, and cross validation.
 
-The return data structure for this method will be of a 'stacked' ``Pandas DataFrame``, consisting of the
+The return data structure for this method will be of a 'stacked' ``pandas`` ``DataFrame``, consisting of the
 grouping keys defined (in the order in which they were generated), the grouping columns, elements of the prediction
 values (deconstructed; e.g. 'weekly', 'yearly', 'daily' seasonality terms and the 'trend'), the date (datetime) values,
 and the prediction itself (labeled `yhat`).
@@ -307,11 +308,11 @@ For example, below is a sample of 3 groups' cross validation metrics.
 Method arguments:
 
 horizon
-    A ``Pandas.Timedelta`` string consisting of two parts: an integer and a periodicity. For example, if the training
+    A ``pandas.Timedelta`` string consisting of two parts: an integer and a periodicity. For example, if the training
     data is daily, consists of 5 years of data, and the end-use for the project is to predict 14 days of future values
     every week, a plausible horizon value might be ``"21 days"`` or ``"28 days"``.
     See `pandas documentation <https://pandas.pydata.org/docs/reference/api/pandas.Timedelta.html>`_ for information on
-    the allowable syntax and format for ``Pandas.Timedelta`` values.
+    the allowable syntax and format for ``pandas.Timedelta`` values.
 
 metrics
     A list of metrics that will be calculated following the back-testing cross validation. By default, all of the
@@ -337,11 +338,11 @@ initial
     specified, is ``horizon`` * 3 with cutoff values for each window set at ``horizon`` / 2.
 
 parallel
-    Mode of operation for calculating cross validation windows. ``None`` for serial execution, ``processes`` for
-    multiprocessing pool execution, and ``threads`` for thread pool execution.
+    Mode of operation for calculating cross validation windows. ``None`` for serial execution, ``'processes'`` for
+    multiprocessing pool execution, and ``'threads'`` for thread pool execution.
 
 cutoffs
-    Optional control mode that allows for defining specific datetime values in ``Pandas Timestamp`` format to determine
+    Optional control mode that allows for defining specific datetime values in ``pandas.Timestamp`` format to determine
     where to conduct train and test split boundaries for validation of each window.
 
 kwargs
@@ -353,7 +354,7 @@ kwargs
 
 Cross Validation
 ^^^^^^^^^^^^^^^^
-The :py:meth:`diviner.GroupedProphet.cross_validate()` method is a wrapper around the ``Prophet`` function
+The :py:meth:`diviner.GroupedProphet.cross_validate` method is a wrapper around the ``Prophet`` function
 ``prophet.diagnostics.cross_validation()``. It is intended to be used as a debugging tool for the 'automated' metric
 calculation method, see :ref:`Cross Validation and Scoring <cv_score>`. The arguments for this
 method are:
@@ -361,41 +362,41 @@ method are:
 horizon
     A timedelta formatted string in the ``Pandas.Timedelta`` format that defines the amount of time to utilize
     for generating a validation dataset that is used for calculating loss metrics per each cross validation window
-    iteration. Example horizons: ("30 days", "24 hours", "16 weeks"). See
-    `the Pandas Timedelta docs <https://pandas.pydata.org/docs/reference/api/pandas.Timedelta.html>`_ for more
+    iteration. Example horizons: (``"30 days"``, ``"24 hours"``, ``"16 weeks"``). See
+    `the pandas Timedelta docs <https://pandas.pydata.org/docs/reference/api/pandas.Timedelta.html>`_ for more
     information on supported formats and syntax.
 
 period
     The periodicity of how often a windowed validation will be constructed. Smaller values here will take longer as
     more 'slices' of the data will be made to calculate error metrics. The format is the same as that of the horizon
-    (i.e. "60 days").
+    (i.e. ``"60 days"``).
 
 initial
     The minimum size of data that will be used to build the cross validation window. Values that are excessively small
     may cause issues with the effectiveness of the estimated overall prediction error and lead to long cross validation
-    runtimes. This argument is in the same format as ``horizon`` and ``period``, a ``Pandas.Timedelta`` format string.
+    runtimes. This argument is in the same format as ``horizon`` and ``period``, a ``pandas.Timedelta`` format string.
 
 parallel
-    Selection on how to execute the cross validation windows. Supported modes: (`None`, `processes`, or `threads`).
-    Due to the reuse of the originating dataset for window slice selection, a shared memory instance mode `threads` is
-    recommended more than using `processes` mode.
+    Selection on how to execute the cross validation windows. Supported modes: (``None``, ``'processes'``, or
+    ``'threads'``). Due to the reuse of the originating dataset for window slice selection, a shared memory instance
+    mode ``'threads'`` is recommended over using ``'processes'`` mode.
 
 cutoffs
-    Optional arguments for specified ``Pandas.Timestamp`` values to define where boundaries should be within
+    Optional arguments for specified ``pandas.Timestamp`` values to define where boundaries should be within
     the group series values. If this is specified, the ``period`` and ``initial`` arguments are not used.
 
 .. note:: For information on how cross validation works within the ``Prophet`` library, see this
     `link <https://facebook.github.io/prophet/docs/diagnostics.html#cross-validation>`_.
 
-The return type of this method is a dictionary of ``{<group_key>: <Pandas DataFrame>}``, the ``DataFrame`` containing
+The return type of this method is a dictionary of ``{<group_key>: <pandas DataFrame>}``, the ``DataFrame`` containing
 the cross validation window scores across time horizon splits.
 
 Performance Metrics
 ^^^^^^^^^^^^^^^^^^^
-The :py:meth:`calculate_performance_metrics <diviner.GroupedProphet.calculate_performance_metrics>` method is a debugging tool that wraps the
-function :py:meth:`performance_metrics <https://facebook.github.io/prophet/docs/diagnostics.html>`_ from ``Prophet``. Usage of this method will generate
-the defined metric scores for each cross validation window, returning a dictionary of
-``{<group_key>: <DataFrame of metrics for each window>}``
+The :py:meth:`calculate_performance_metrics <diviner.GroupedProphet.calculate_performance_metrics>` method is a
+debugging tool that wraps the function `performance_metrics <https://facebook.github.io/prophet/docs/diagnostics.html>`_
+from ``Prophet``. Usage of this method will generate the defined metric scores for each cross validation window,
+returning a dictionary of ``{<group_key>: <DataFrame of metrics for each window>}``
 
 Method arguments:
 

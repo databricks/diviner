@@ -185,9 +185,9 @@ This data structure paradigm enables several utilization paths that a 'pivoted' 
 example, does not, such as:
 
 * The ability to dynamically group data based on hierarchical relationships.
-    * Group on {"Country", "City"}
-    * Group on {"Country"}
-    * Group on {"City"}
+    * Group on ``{"Country", "City"}``
+    * Group on ``{"Country"}``
+    * Group on ``{"City"}``
 * Less data manipulation transformation code required when pulling data from source systems.
 * Increased legibility of visual representations of the data.
 
@@ -212,16 +212,15 @@ forecast for each of the cities using the :ref:`GroupedProphet API <grouped_prop
 
     forecast_data = grouped_prophet_model.forecast(horizon=30, frequency="D")
 
-This example will parse the columns "Country" and "City", generate grouping keys, and build Prophet models for
+This example parses the columns "Country" and "City", generates grouping keys, and builds Prophet models for
 each of the combinations present in the data set:
 
-{("United Kingdom", "London"), ("France", "Paris"), ("Germany", "Munich"), ("Italy", "Rome")}
+``{("United Kingdom", "London"), ("France", "Paris"), ("Germany", "Munich"), ("Italy", "Rome")}``
 
 Alternatively, if we had multiple city values for each country and wished to forecast sales by country, we could have
-submitted ``grouping_columns = ["Country"]`` and the data would have been aggregated to the country level, building models that
-would have been at the country level.
+submitted ``grouping_columns = ["Country"]``; this would have aggregated data and built models at the country level.
 
-Following the model building, a 30 day forecast was generated (returned as a stacked consolidated Pandas DataFrame).
+Following the model building, a 30 day forecast is generated (returned as a stacked consolidated Pandas DataFrame).
 
 .. note::
     For more in-depth examples (including per-group parameter extraction, cross validation metrics results, and serialization),

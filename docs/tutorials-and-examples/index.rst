@@ -6,4 +6,4 @@ The links below will direct you to tutorials and examples of how to use Diviner 
 
 * Grouped Prophet
     * `Script <https://github.com/databricks/diviner/tree/main/examples/grouped_prophet_example.py>`_
-    * `Jupyter Notebook <https://github.com/diviner/tree/main/examples/grouped_prophet_example_jupyter.ipynb>`_
+    * `Jupyter Notebook <https://github.com/databricks/diviner/tree/main/examples/grouped_prophet_example_jupyter.ipynb>`_

@@ -13,7 +13,7 @@ To get started with Diviner, see the quickstart guide (:ref:`quickstart`).
 
 Individual forecasting library API guides can be found here:
 
-* :ref:`Grouped Prophet API<grouped_prophet>`
+* :ref:`Grouped Prophet API <grouped_prophet>`
 
 Examples of each of the wrapped forecasting libraries can be found :ref:`here<tutorials-and-examples>`.
 
@@ -21,7 +21,10 @@ Examples of each of the wrapped forecasting libraries can be found :ref:`here<tu
    :maxdepth: 2
    :caption: Contents:
 
+   readme
    quickstart
    tutorials-and-examples/index
    grouped_prophet
+   contributing
+   changelog
 

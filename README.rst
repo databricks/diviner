@@ -43,13 +43,9 @@ Each of these examples has a *common theme*:
 * There is no guarantee of seasonal, trend, or residual homogeneity in each series.
 * Varying levels of aggregation may be called for to solve different use cases.
 
-The primary aspect that Diviner solves is allowing for managing of the execution of many discrete series with a
-high-level API and metadata management approach that relieves the operational burden of managing hundreds (or thousands)
-of individual models.
-
-If a project needs to provide forecasts for many entities utilizing common open source libraries, Diviner will provide
-a simpler solution to build these projects than having to write an infrastructure framework to handle individual model
-instances.
+The primary problem that Diviner solves is managing the execution of many discrete time-series modeling tasks. Diviner
+provides a high-level API and metadata management approach that relieves the operational burden of managing hundreds
+or thousands of individual models.
 
 Grouped Modeling Wrappers
 -------------------------
@@ -58,19 +54,18 @@ Currently, Diviner supports the following open source libraries for forecasting 
 
 * `prophet <https://facebook.github.io/prophet/docs/quick_start.html>`_
 
-* `statsmodels <https://www.statsmodels.org/stable/index.html>`_
-
-* `pmdarima <https://alkaline-ml.com/pmdarima/index.html>`_
-
 Installing
 ----------
 
-Install Diviner from PyPi via ``pip install diviner``
+Install Diviner from PyPI via:
+
+``pip install diviner``
 
 Documentation
 -------------
 
-Documentation, Examples, and Tutorials for Diviner can be found `here <https://databricks-diviner.readthedocs.io/en/latest/index.html>`_.
+Documentation, Examples, and Tutorials for Diviner can be found
+`here <https://databricks-diviner.readthedocs.io/en/latest/index.html>`_.
 
 Community & Contributing
 ------------------------
@@ -79,4 +74,5 @@ For assistance with Diviner, see the `docs <https://databricks-diviner.readthedo
 
 Contributions to Diviner are welcome. To file a bug, request a new feature, or to contribute a feature request, please
 open a GitHub issue. The team will work with you to ensure that your contributions are evaluated and appropriate
-feedback is provided. See :ref:`contributing guidelines <../CONTRIBUTING.md>`_.
+feedback is provided. See the
+`contributing guidelines <https://github.com/databricks/diviner/blob/docs/CONTRIBUTING.md>`_ for submission guidance.
