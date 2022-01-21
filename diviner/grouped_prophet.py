@@ -65,7 +65,7 @@ class GroupedProphet(GroupedForecaster):
             warnings.warn(*_warning, stacklevel=2)
             print(f"WARNING: {_warning[0]}")
 
-    def fit(self, df, group_key_columns, **kwargs):
+    def fit(self, df, group_key_columns, y_col="y", datetime_col="ds", **kwargs):
         """
         Main fit method for executing a Prophet .fit() on the submitted DataFrame, grouped by
         the `_group_key_columns` submitted.
@@ -103,6 +103,12 @@ class GroupedProphet(GroupedForecaster):
                                   relevant keys are defined in the input `df` and declared in this
                                   param to ensure that the appropriate per-univariate series data
                                   is used to train each model.
+        :param y_col: The name of the column within the DataFrame input to any method within this
+                      class that contains the endogenous regressor term (the raw data that will
+                      be used to train and use as a basis for forecasting).
+        :param datetime_col: The name of the column within the DataFrame input that defines the
+                             datetime or date values associated with each row of the endogenous
+                             regressor (``y_col``) data.
         :param kwargs: overrides for underlying Prophet `.fit()` **kwargs (i.e., optimizer backend
                         library configuration overrides) for further information, see:
                         (https://facebook.github.io/prophet/docs/diagnostics.html\
@@ -114,13 +120,15 @@ class GroupedProphet(GroupedForecaster):
 
         _validate_keys_in_df(df, self._group_key_columns)
 
+        if y_col != "y":
+            df.rename(columns={y_col: "y"}, inplace=True)
+        if datetime_col != "ds":
+            df.rename(columns={datetime_col: "ds"}, inplace=True)
+
         grouped_data = PandasGroupGenerator(
             self._group_key_columns
         ).generate_processing_groups(df)
 
-        # fit_model = [
-        #     self._fit_prophet(group_key, df, **kwargs) for group_key, df in grouped_data
-        # ]
         fit_model = []
         for group_key, df in grouped_data:
             group_model = self._fit_prophet(group_key, df, **kwargs)

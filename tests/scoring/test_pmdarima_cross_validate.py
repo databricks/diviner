@@ -49,10 +49,8 @@ def test_grouped_model_cross_validate():
     train = data_generator.generate_test_data(1, 2, 765, "2019-01-01")
 
     grouped_model = GroupedPmdarima(
-        y_col="y",
-        datetime_col="ds",
         model_template=AutoARIMA(max_order=5, out_of_sample_size=30),
-    ).fit(train.df, train.key_columns, True)
+    ).fit(train.df, train.key_columns, "y", "ds", silence_warnings=True)
     cross_validator = RollingForecastCV(h=90, step=120, initial=365)
     cv_metrics = grouped_model.cross_validate(train.df, metrics, cross_validator)
 

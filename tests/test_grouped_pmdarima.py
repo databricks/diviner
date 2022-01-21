@@ -4,8 +4,8 @@ from pmdarima.arima.auto import AutoARIMA
 from pmdarima.arima.arima import ARIMA
 from pmdarima.pipeline import Pipeline
 from pmdarima.preprocessing import FourierFeaturizer
-from diviner import GroupedPmdarima, PmdarimaUtils
-from diviner.utils.pmdarima_utils import (
+from diviner import GroupedPmdarima, PmdarimaAnalyzer
+from diviner.analysis.pmdarima_analyzer import (
     _PMDARIMA_MODEL_METRICS,
     _COMPOUND_KEYS,
 )
@@ -43,13 +43,23 @@ def data():
 def basic_pmdarima(data):
 
     arima = AutoARIMA(out_of_sample_size=30)
-    return GroupedPmdarima("y", "ds", arima).fit(data.df, data.key_columns)
+    return GroupedPmdarima(arima).fit(
+        data.df,
+        data.key_columns,
+        "y",
+        "ds",
+    )
 
 
 @pytest.fixture(scope="module")
 def basic_arima(data):
     arima = ARIMA(out_of_sample_size=30, order=(2, 0, 3))
-    return GroupedPmdarima("y", "ds", arima).fit(data.df, data.key_columns)
+    return GroupedPmdarima(arima).fit(
+        data.df,
+        data.key_columns,
+        "y",
+        "ds",
+    )
 
 
 @pytest.fixture(scope="module")
@@ -60,29 +70,31 @@ def basic_pipeline(data):
             ("arima", AutoARIMA(out_of_sample_size=60)),
         ]
     )
-    return GroupedPmdarima("y", "ds", pipeline).fit(data.df, data.key_columns)
+    return GroupedPmdarima(pipeline).fit(
+        data.df,
+        data.key_columns,
+        "y",
+        "ds",
+    )
 
 
 @pytest.fixture(scope="module")
 def pipeline_override_d(data):
     pipeline = Pipeline(steps=[("arima", AutoARIMA(out_of_sample_size=30))])
-    util = PmdarimaUtils(
+    util = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     )
     ndiffs = util.calculate_ndiffs(alpha=0.2, test="kpss", max_d=7)
     nsdiffs = util.calculate_nsdiffs(m=7, test="ocsb", max_D=7)
-    return GroupedPmdarima("y", "ds", pipeline).fit(
+    return GroupedPmdarima(pipeline).fit(
         df=data.df,
         group_key_columns=data.key_columns,
+        y_col="y",
+        datetime_col="ds",
         ndiffs=ndiffs,
         nsdiffs=nsdiffs,
         silence_warnings=True,
     )
-
-
-@pytest.fixture(scope="module")
-def grouped_obj():
-    return GroupedPmdarima("y", "ds", ARIMA(order=(1, 1, 1)))
 
 
 def test_default_arima_metric_extract(basic_arima):
@@ -145,7 +157,7 @@ def test_default_pipeline_params_extract(basic_pipeline):
 def test_default_pipeline_forecast_no_conf_int(basic_pipeline):
     forecast_cnt = 10
     forecast_columns = {"forecast", "grouping_key_columns", "key1", "key0", "ds"}
-    forecast = basic_pipeline.predict(forecast_cnt)
+    forecast = basic_pipeline.predict(forecast_cnt, "forecast")
 
     assert set(forecast.columns).issubset(forecast_columns)
     assert len(forecast) == forecast_cnt * SERIES_TEST_COUNT
@@ -163,7 +175,9 @@ def test_default_auto_arima_predict_conf_int(basic_pmdarima):
         "ds",
     }
 
-    prediction = basic_pmdarima.predict(n_periods=forecast_cnt, return_conf_int=True)
+    prediction = basic_pmdarima.predict(
+        n_periods=forecast_cnt, predict_col="forecast", return_conf_int=True
+    )
 
     assert len(prediction) == forecast_cnt * SERIES_TEST_COUNT
     assert set(prediction.columns).issubset(forecast_columns)
@@ -171,7 +185,7 @@ def test_default_auto_arima_predict_conf_int(basic_pmdarima):
 
 def test_pmdarima_stationarity_optimized_overrides(data, pipeline_override_d):
 
-    ndiffs = PmdarimaUtils(
+    ndiffs = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     ).calculate_ndiffs(alpha=0.5, test="kpss", max_d=7)
 

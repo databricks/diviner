@@ -25,12 +25,16 @@ def data():
 def model(data):
 
     arima = GroupedPmdarima(
-        y_col="y",
-        datetime_col="ds",
         model_template=Pipeline(
             steps=[("arima", AutoARIMA(out_of_sample_size=60, max_order=7))]
         ),
-    ).fit(df=data.df, group_key_columns=data.key_columns, silence_warnings=True)
+    ).fit(
+        df=data.df,
+        group_key_columns=data.key_columns,
+        y_col="y",
+        datetime_col="ds",
+        silence_warnings=True,
+    )
     return arima
 
 

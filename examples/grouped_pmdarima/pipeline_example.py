@@ -39,9 +39,13 @@ if __name__ == "__main__":
             ("arima", AutoARIMA(out_of_sample_size=60, max_p=4, max_q=4, max_d=4)),
         ]
     )
-    pipeline_arima = GroupedPmdarima(
-        y_col="y", datetime_col="ds", model_template=pipeline_obj
-    ).fit(df=training_data, group_key_columns=group_key_columns, silence_warnings=True)
+    pipeline_arima = GroupedPmdarima(model_template=pipeline_obj).fit(
+        df=training_data,
+        group_key_columns=group_key_columns,
+        y_col="y",
+        datetime_col="ds",
+        silence_warnings=True,
+    )
 
     # Save to local directory
     save_dir = "/tmp/group_pmdarima/pipeline.gpmd"
@@ -54,7 +58,9 @@ if __name__ == "__main__":
     get_and_print_model_metrics_params(loaded_model)
 
     print("\nPredictions:\n", "-" * 40)
-    prediction = loaded_model.predict(n_periods=30, alpha=0.2, return_conf_int=True)
+    prediction = loaded_model.predict(
+        n_periods=30, alpha=0.2, predict_col="predictions", return_conf_int=True
+    )
     print(prediction.to_string())
 
     print("\nCross validation metric results:\n", "-" * 40)

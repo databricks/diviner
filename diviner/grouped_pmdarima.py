@@ -23,7 +23,7 @@ from diviner.utils.common import (
     _get_last_datetime_per_group,
     _get_datetime_freq_per_group,
 )
-from diviner.utils.pmdarima_utils import (
+from diviner.analysis.pmdarima_analyzer import (
     _get_arima_params,
     _get_arima_training_metrics,
     _extract_arima_model,
@@ -38,53 +38,44 @@ from diviner.exceptions import DivinerException
 class GroupedPmdarima(GroupedForecaster):
     def __init__(
         self,
-        y_col,
-        datetime_col,
         model_template,
-        exog_cols=None,
-        predict_col="forecast",
     ):
         """
-        A class for constructing multiple pmdarima models from a single normalized input DataFrame.
+        A class for constructing multiple ``pmdarima`` models from a single normalized input
+        DataFrame.
         This implementation supports submission of a model template that is one of:
-        `pmdarima.arima.arima.ARIMA`, `pmdarima.arima.auto.AutoARIMA`, or
-        `pmdarima.pipeline.Pipeline`.
-        The constructor argument of `model_template` will apply the settings specified as part of
+        ``pmdarima.arima.arima.ARIMA``, ``pmdarima.arima.auto.AutoARIMA``, or
+        ``pmdarima.pipeline.Pipeline``.
+        The constructor argument of ``model_template`` will apply the settings specified as part of
         instantiation of these classes to all groups within the input DataFrame.
 
-        :param y_col: The name of the column within the DataFrame input to any method within this
-                      class that contains the endogenous regressor term (the 'raw data' that will
-                      be used to train and use as a basis for forecasting).
-        :param datetime_col: The name of the column within the DataFrame input that defines the
-                             datetime or date values associated with each row of the endogenous
-                             regressor (y_col) data.
-        :param model_template: The model template to be applied to each of the groups identified.
+        :param model_template: The type of model to build for each of the groups identified.
                                Supported templates:
-                               `pmdarima.arima.arima.ARIMA` - A wrapper around
-                               `statsmodels.api.SARIMAX`.
+                               ``pmdarima.arima.arima.ARIMA`` - A wrapper around
+                               ``statsmodels.api.SARIMAX``.
                                See: https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.\
                                arima.ARIMA.html#pmdarima.arima.ARIMA
-                               `pmdarima.arima.auto.AutoARIMA` - An auto-tunable order and seasonal
-                               order SARIMAX implementation.
+                               ``pmdarima.arima.auto.AutoARIMA`` - An auto-tunable order and
+                               seasonal order SARIMAX implementation.
                                See: https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.\
                                arima.AutoARIMA.html
-                               `pmdarima.pipeline.Pipeline` - An sklearn-like pipeline orchestrator
-                               for building preprocessing and model components for pmdarima.
+                               ``pmdarima.pipeline.Pipeline`` - An sklearn-like pipeline
+                               orchestrator for building preprocessing and model components for
+                               ``pmdarima``.
                                See: https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.\
                                pipeline.Pipeline.html#pmdarima.pipeline.Pipeline
                                For examples showing the usage of each of these template paradigms,
                                see the examples section of this package.
-        :param exog_cols: Optional exogenous regressor elements to use as part of model fitting
-                          and predicting.
-        :param predict_col: The name to be applied to the column containing predicted data.
+
+
         """
         super().__init__()
-        self._y_col = y_col
-        self._datetime_col = datetime_col
+        self._y_col = None
+        self._datetime_col = None
         self._model_template = model_template
-        self._exog_cols = exog_cols
+        self._exog_cols = None
         self._master_key = "grouping_key"
-        self._predict_col = predict_col
+        self._predict_col = None
         self._max_datetime_per_group = None
         self._datetime_freq_per_group = None
         self._ndiffs = None
@@ -109,7 +100,7 @@ class GroupedPmdarima(GroupedForecaster):
         else:
             exog = None
 
-        # Set 'd' term if pre-calculated with `PmdarimaUtils.calculate_ndiffs`
+        # Set 'd' term if pre-calculated with `PmdarimaAnalyzer.calculate_ndiffs`
         if self._ndiffs:
             d_term = self._ndiffs.get(group_key, None)
             if d_term:
@@ -128,7 +119,7 @@ class GroupedPmdarima(GroupedForecaster):
                 elif isinstance(model, AutoARIMA):
                     setattr(model, "d", d_term)
 
-        # Set 'D' term if pre-calculated with `PmdarimaUtils.calculate_nsdiffs`
+        # Set 'D' term if pre-calculated with `PmdarimaAnalyzer.calculate_nsdiffs`
         if self._nsdiffs:
             sd_term = self._nsdiffs.get(group_key, None)
             if sd_term:
@@ -173,58 +164,80 @@ class GroupedPmdarima(GroupedForecaster):
         self,
         df,
         group_key_columns,
-        ndiffs=None,
-        nsdiffs=None,
-        silence_warnings=False,
+        y_col: str,
+        datetime_col: str,
+        exog_cols: list[str] = None,
+        ndiffs: dict = None,
+        nsdiffs: dict = None,
+        silence_warnings: bool = False,
         **fit_kwargs,
     ):
         """
-        Fit method for training a pmdarima model on the submitted normalized DataFrame.
+        Fit method for training a ``pmdarima`` model on the submitted normalized DataFrame.
         When initialized, the input DataFrame will be split into an iterable collection of
-        grouped data sets based on the `group_key_columns` arguments, which is then used to fit
-        individual pmdarima models (or a supplied Pipeline) upon the templated object supplied
-        as a class instance argument `model_template`.
-        For API information for pmdarima's ARIMA, AutoARIMA, and Pipeline APIs, see:
+        grouped data sets based on the ``group_key_columns`` arguments, which is then used to fit
+        individual ``pmdarima`` models (or a supplied ``Pipeline``) upon the templated object
+        supplied as a class instance argument `model_template`.
+        For API information for ``pmdarima``'s ``ARIMA``, ``AutoARIMA``, and ``Pipeline`` APIs, see:
         https://alkaline-ml.com/pmdarima/modules/classes.html#api-ref
 
         :param df: A normalized group data set consisting of a datetime column that defines
                    ordering of the series, an endogenous regressor column that specifies the
-                   series data for training (e.g. `y_col`), and column(s) that define the grouping
-                   of the series data.
+                   series data for training (e.g. ``y_col``), and column(s) that define the
+                   grouping of the series data.
                    An example normalized data set:
 
-                   |region     |zone|country |ds          |y     |
-                   |'northeast'|1   |"US"    |"2021-10-01"|1234.5|
-                   |'northeast'|2   |"US"    |"2021-10-01"|3255.6|
-                   |'northeast'|1   |"US"    |"2021-10-02"|1255.9|
+                   =========== ===== ======== ============ ======
+                   region      zone  country  ds           y
+                   =========== ===== ======== ============ ======
+                   'northeast' 1     "US"     "2021-10-01" 1234.5
+                   'northeast' 2     "US"     "2021-10-01" 3255.6
+                   'northeast' 1     "US"     "2021-10-02" 1255.9
+                   =========== ===== ======== ============ ======
 
                    Wherein the grouping_key_columns could be one, some, or all of
-                   ['region', 'zone', 'country'], the datetime_col would be the 'ds' column, and
-                   the series `y_col` (endogenous regressor) would be 'y'.
-        :param group_key_columns: The columns in the `df` argument that define, in aggregate, a
+                   ``['region', 'zone', 'country']``, the datetime_col would be the `'ds'` column,
+                   and the series ``y_col`` (endogenous regressor) would be `'y'`.
+        :param group_key_columns: The columns in the ``df`` argument that define, in aggregate, a
                                   unique time series entry. For example, with the DataFrame
-                                  referenced in the `df` param, group_key_columns could be:
-                                  ('region', 'zone') or ('region') or ('country', 'region', 'zone')
-        :param ndiffs: overrides to the `d` ARIMA differencing term for stationarity enforcement.
+                                  referenced in the ``df`` param, group_key_columns could be:
+                                  ``('region', 'zone')`` or ``('region')`` or
+                                  ``('country', 'region', 'zone')``
+        :param y_col: The name of the column within the DataFrame input to any method within this
+                      class that contains the endogenous regressor term (the raw data that will
+                      be used to train and use as a basis for forecasting).
+        :param datetime_col: The name of the column within the DataFrame input that defines the
+                             datetime or date values associated with each row of the endogenous
+                             regressor (``y_col``) data.
+        :param exog_cols: An optional collection of column names within the submitted data to class
+                          methods that contain exogenous regressor elements to use as part of model
+                          fitting and predicting.
+        :param ndiffs: optional overrides to the ``d`` ``ARIMA`` differencing term for stationarity
+                       enforcement.
                        The structure of this argument is a dictionary in the form of:
-                       `{<group_key>: <d_term>}`. To calculate, use
-                       `diviner.PmdarimaUtils.calculate_ndiffs()`
-        :param nsdiffs: overrides to the `D` SARIMAX seasonal differencing term for seasonal
-                        stationarity enforcement.
+                       ``{<group_key>: <d_term>}``. To calculate, use
+                       ``diviner.PmdarimaAnalyzer.calculate_ndiffs()``
+        :param nsdiffs: optional overrides to the ``D`` SARIMAX seasonal differencing term for
+                        seasonal stationarity enforcement.
                         The structure of this argument is a dictionary in the form of:
-                       `{<group_key>: <D_term>}`. To calculate, use
-                       `diviner.PmdarimaUtils.calculate_nsdiffs()`
-        :param silence_warnings: If True, removes SARIMAX and underlying optimizer warning message
-                                 from stdout printing. With a sufficiently large nubmer of groups
-                                 to process, the volume of these messages to stdout may become
-                                 very large.
-        :param fit_kwargs: fit_kwargs for pmdarima's ARIMA, AutoARIMA, or Pipeline stages overrides.
-                           For more information, see pmdarima docs:
+                       ``{<group_key>: <D_term>}``. To calculate, use
+                       ``diviner.PmdarimaAnalyzer.calculate_nsdiffs()``
+        :param silence_warnings: If True, removes ``SARIMAX`` and underlying optimizer warning
+                                 message from stdout printing. With a sufficiently large nubmer of
+                                 groups to process, the volume of these messages to stdout may
+                                 become very large.
+        :param fit_kwargs: ``fit_kwargs`` for ``pmdarima``'s ``ARIMA``, ``AutoARIMA``, or
+                           ``Pipeline`` stages overrides.
+                           For more information, see the ``pmdarima`` docs:
                            https://alkaline-ml.com/pmdarima/index.html
-        :return: object instance of GroupedPmdarima with the persisted fit model attached.
+        :return: object instance of ``GroupedPmdarima`` with the persisted fit model attached.
         """
 
         self._model_init_check()
+
+        self._y_col = y_col
+        self._datetime_col = datetime_col
+        self._exog_cols = exog_cols
         self._group_key_columns = group_key_columns
         if ndiffs and isinstance(ndiffs, dict):
             self._ndiffs = ndiffs
@@ -277,9 +290,9 @@ class GroupedPmdarima(GroupedForecaster):
         )
         if return_conf_int:
             prediction_raw = pd.DataFrame.from_records(prediction).T
-            prediction_raw.columns = [self._predict_col, "yhat"]
+            prediction_raw.columns = [self._predict_col, "_yhat_err"]
             prediction_df = pd.DataFrame(
-                prediction_raw["yhat"].to_list(), columns=["yhat_lower", "yhat_upper"]
+                prediction_raw["_yhat_err"].to_list(), columns=["yhat_lower", "yhat_upper"]
             )
             prediction_df.insert(
                 loc=0, column=self._predict_col, value=prediction_raw[self._predict_col]
@@ -315,16 +328,17 @@ class GroupedPmdarima(GroupedForecaster):
     def predict(
         self,
         n_periods: int,
-        alpha=0.05,
-        return_conf_int=False,
-        inverse_transform=True,
+        predict_col: str = "yhat",
+        alpha: float = 0.05,
+        return_conf_int: bool = False,
+        inverse_transform: bool = True,
         exog=None,
         **predict_kwargs,
     ):
         """
         Prediction method for generating forecasts for each group that has been trained as part of
-        a call to `fit()`.
-        Note that pmdarima's API does not support predictions outside of the defined datetime
+        a call to ``fit()``.
+        Note that ``pmdarima``'s API does not support predictions outside of the defined datetime
         frequency that was validated during training (i.e., if the series endogenous data is at
         an hourly frequency, the generated predictions will be at an hourly frequency and cannot
         be modified from within this method).
@@ -333,31 +347,34 @@ class GroupedPmdarima(GroupedForecaster):
                           predictions will be 1 frequency period after the maximum datetime value
                           per group during training.
                           For example, a data set used for training that has a datetime frequency
-                          in days that ends on 7/10/2021 will, with a value of `n_periods=7`,
+                          in days that ends on 7/10/2021 will, with a value of ``n_periods=7``,
                           start its prediction on 7/11/2021 and generate daily predicted values
                           up to and including 7/17/2021.
+        :param predict_col: The name to be applied to the column containing predicted data.
+                            Default: ``'yhat'``
         :param alpha: Optional value for setting the confidence intervals for error estimates.
-                      Note: this is only utilized if `return_conf_int` is set to `True`.
-                      Default: 0.05 (representing a 95% CI)
+                      Note: this is only utilized if ``return_conf_int`` is set to ``True``.
+                      Default: ``0.05`` (representing a 95% CI)
         :param return_conf_int: Boolean flag for whether to calculate confidence interval error
-                                estimates for predicted values. The intervals of `yhat_upper` and
-                                `yhat_lower` are based on the `alpha` parameter.
-                                Default: False
-        :param inverse_transform: Optional argument used only for Pipeline models that include
-                                  either a `BoxCoxEndogTransformer` or a `LogEndogTransformer`.
-                                  Default: True
+                                estimates for predicted values. The intervals of ``yhat_upper`` and
+                                ``yhat_lower`` are based on the ``alpha`` parameter.
+                                Default: ``False``
+        :param inverse_transform: Optional argument used only for ``Pipeline`` models that include
+                                  either a ``BoxCoxEndogTransformer`` or a ``LogEndogTransformer``.
+                                  Default: ``True``
         :param exog: Exogenous regressor components as a 2-D array.
                      Note: if the model is trained with exogenous regressor components, this
                      argument is required.
-        :param predict_kwargs: Extra kwarg arguments for any of the transform stages of a Pipeline
-                       or for additional `predict` kwargs to the model instance.
-                       Pipeline kwargs are specified in the manner of sklearn Pipelines (i.e.,
-                       <stage_name>__<arg name>=<value>. e.g., to change the values of a fourier
-                       transformer at prediction time, the override would be:
-                       {'fourier__n_periods': 45})
+        :param predict_kwargs: Extra ``kwarg`` arguments for any of the transform stages of a
+                               ``Pipeline`` or for additional ``predict`` ``kwargs`` to the model
+                               instance. ``Pipeline`` ``kwargs`` are specified in the manner of
+                               ``sklearn`` ``Pipeline``s (i.e., <stage_name>__<arg name>=<value>.
+                               e.g., to change the values of a fourier transformer at prediction
+                               time, the override would be: ``{'fourier__n_periods': 45})``
         :return: A consolidate (unioned) single DataFrame of predictions per group.
         """
         self._fit_check()
+        self._predict_col = predict_col
         prediction_config = _generate_prediction_config(
             self,
             n_periods,
@@ -369,10 +386,13 @@ class GroupedPmdarima(GroupedForecaster):
 
     def get_metrics(self):
         """
-        Retrieve the ARIMA fit metrics that are generated during the AutoARIMA training event.
-        These metrics are not validation metrics.
+        Retrieve the ``ARIMA`` fit metrics that are generated during the ``AutoARIMA`` or
+        ``ARIMA`` training event.
+        Note: These metrics are not validation metrics. Use the ``cross_validate()`` method for
+        retrieving back-testing error metrics.
 
-        :return: Pandas DataFrame with metrics provided as columns and a row entry per group.
+        :return: ``Pandas`` ``DataFrame`` with metrics provided as columns and a row entry per
+                 group.
         """
         self._fit_check()
         metric_extract = {}
@@ -385,12 +405,12 @@ class GroupedPmdarima(GroupedForecaster):
 
     def get_model_params(self):
         """
-        Retrieve the parameters from the fit `model_template` that was passed in as a Pandas
-        DataFrame. Parameters will be columns with a row for each group defined during `fit`.
+        Retrieve the parameters from the ``fit`` ``model_template`` that was passed in and return
+        them in a denormalized ``Pandas`` ``DataFrame``. Parameters in the return ``DataFrame``
+        are columns with a row for each group defined during ``fit()``.
 
-        :return: Pandas DataFrame with fit parameters for each group.
+        :return: ``Pandas`` ``DataFrame`` with ``fit`` parameters for each group.
         """
-        #  TODO: extract params from pipeline stages and submit in report
         self._fit_check()
         params_extract = {}
         for group, pipeline in self.model.items():
@@ -410,25 +430,25 @@ class GroupedPmdarima(GroupedForecaster):
         the cross validation must be defined and configured through the cross_validator that is
         submitted.
         See: https://alkaline-ml.com/pmdarima/modules/classes.html#cross-validation-split-utilities
-        for details on the underlying implementation of cross validation with pmdarima.
+        for details on the underlying implementation of cross validation with ``pmdarima``.
 
-        :param df: A DataFrame that contains the endogenous series and the grouping key columns
+        :param df: A ``DataFrame`` that contains the endogenous series and the grouping key columns
                    that were defined during training. Any missing key entries will not be scored.
                    Note that each group defined within the model will be retrieved from this
-                   DataFrame. keys that do not exist will raise an Exception.
+                   ``DataFrame``. keys that do not exist will raise an Exception.
         :param metrics: A list of metric names or string of single metric name to use for
                         cross validation metric calculation.
-        :param cross_validator: A cross validator instance from `pmdarima.model_selection`
-                               (`RollingForecastCV` or `SlidingWindowForecastCV`).
-                               Note: setting low values of `h` or `step` will dramatically increase
-                               execution time).
+        :param cross_validator: A cross validator instance from ``pmdarima.model_selection``
+                               (``RollingForecastCV`` or ``SlidingWindowForecastCV``).
+                               Note: setting low values of ``h`` or ``step`` will dramatically
+                               increase execution time).
         :param error_score: Default value to assign to a score calculation if an error occurs
                             in a given window iteration.
-                            Default: `np.nan` (silent ignore of the failure)
-        :param verbosity: print verbosity level for pmdarima's cross validation stages.
-                          Default: 0 (no printing to stdout)
-        :return: Pandas DataFrame containing the group information and calculated cross validation
-                 metrics for each group.
+                            Default: ``np.nan`` (a silent ignore of the failure)
+        :param verbosity: print verbosity level for ``pmdarima``'s cross validation stages.
+                          Default: ``0`` (no printing to stdout)
+        :return: ``Pandas`` ``DataFrame`` containing the group information and calculated cross
+                 validation metrics for each group.
         """
 
         from diviner.scoring.pmdarima_cross_validate import (
@@ -459,8 +479,8 @@ class GroupedPmdarima(GroupedForecaster):
     def save(self, path: str):
         """
         Serialize and write the instance of this class (if it has been fit) to the path specified.
-        Note: The serialized model is base64 encoded for top-level items and pickle'd for
-        pmdarima individual group models and any Pandas DataFrame.
+        Note: The serialized model is base64 encoded for top-level items and ``pickle``'d for
+        ``pmdarima`` individual group models and any ``Pandas`` ``DataFrame``.
 
         :param path: Path to write this model's instance to.
         :return: None
@@ -473,14 +493,14 @@ class GroupedPmdarima(GroupedForecaster):
     @classmethod
     def load(cls, path: str):
         """
-        Load a GroupedPmdarima instance from a saved serialized version.
-        Note: This is a class instance and as such, a GroupedPmdarima instance does not need to be
-        initialized in order to load a saved model.
+        Load a ``GroupedPmdarima`` instance from a saved serialized version.
+        Note: This is a class instance and as such, a ``GroupedPmdarima`` instance does not need
+        to be initialized in order to load a saved model.
         For example:
-        `loaded_model = GroupedPmdarima.load(<location>)`
+        ``loaded_model = GroupedPmdarima.load(<location>)``
 
-        :param path: The path to a serialized instance of GroupedPmdarima
-        :return: The GroupedPmdarima instance that was saved.
+        :param path: The path to a serialized instance of ``GroupedPmdarima``
+        :return: The ``GroupedPmdarima`` instance that was saved.
         """
         attr_dict = grouped_pmdarima_load(path)
         init_args = inspect.signature(cls.__init__).parameters.keys()

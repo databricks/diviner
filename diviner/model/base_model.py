@@ -29,7 +29,9 @@ class GroupedForecaster(abc.ABC):
         self._master_key = None
 
     @abc.abstractmethod
-    def fit(self, df, group_key_columns: Tuple[str], **kwargs):
+    def fit(
+        self, df, group_key_columns: Tuple[str], y_col: str, datetime_col: str, **kwargs
+    ):
         """
         Generate a grouped representation of the "highly normalized" Dataframe, create a grouping
         key column, and iterate over those grouping keys to generate trained models of the
@@ -41,13 +43,15 @@ class GroupedForecaster(abc.ABC):
         :param df: a Dataframe that contains the keys specified in the class constructor init.
         :param group_key_columns: list of grouping key columns in df that determine unique
                                   time series collections of data.
+        :param y_col: column name containing the endogenous regressor used for forecasting.
+        :param datetime_col: column name for the datetime values associated with each row of data.
         :param kwargs: Underlying configuration overrides for the per-instance forecasting
                        library used as a model for each group.
         :return: Object instance
         """
 
     @abc.abstractmethod
-    def predict(self, df):
+    def predict(self, df, predict_col: str):
         """
         Template method for defining the standard signature for predict.
         This signature requires a DataFrame of the same structure as that used in `.fit()`,
@@ -56,6 +60,7 @@ class GroupedForecaster(abc.ABC):
 
         :param df: A DataFrame containing grouping key columns that resolve to values that
                    were present in the `.fit()` DataFrame.
+        :param predict_col: The column name of the forecasted data to be generated on output.
         :return: A consolidated DataFrame of the union of each model's predictions per each
                  grouping key present in the `df` DataFrame.
         """

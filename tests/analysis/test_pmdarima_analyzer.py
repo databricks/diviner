@@ -2,9 +2,9 @@ from numpy.testing import assert_allclose
 import pytest
 from tests import data_generator
 from pmdarima.arima.auto import AutoARIMA
-from diviner import GroupedPmdarima, PmdarimaUtils
+from diviner import GroupedPmdarima, PmdarimaAnalyzer
 from diviner.exceptions import DivinerException
-from diviner.utils.pmdarima_utils import (
+from diviner.analysis.pmdarima_analyzer import (
     _extract_arima_model,
     _get_arima_params,
     _get_arima_training_metrics,
@@ -30,8 +30,8 @@ def data():
 def test_pmdarima_default_arima_fit_attribute_extraction(data):
 
     arima_model = GroupedPmdarima(
-        "y", "ds", model_template=AutoARIMA(out_of_sample_size=30)
-    ).fit(data.df, data.key_columns)
+        model_template=AutoARIMA(out_of_sample_size=30)
+    ).fit(data.df, data.key_columns, "y", "ds")
 
     for group, model in arima_model.model.items():
         pipeline = arima_model._extract_individual_model(group)
@@ -76,7 +76,7 @@ def test_pmdarima_prediction_config_generation():
 @pytest.mark.parametrize("type_", ["additive", "multiplicative"])
 def test_pmdarima_utils_trend_decomposition(data, type_):
 
-    decomposed = PmdarimaUtils(
+    decomposed = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     ).decompose_groups(m=7, type_=type_)
     for col in {
@@ -95,7 +95,7 @@ def test_pmdarima_utils_trend_decomposition(data, type_):
 
 def test_pmdarima_utils_ndiffs_calculation(data):
 
-    ndiffs = PmdarimaUtils(
+    ndiffs = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     ).calculate_ndiffs(alpha=0.2, test="kpss", max_d=7)
     assert len(ndiffs) == SERIES_TEST_COUNT
@@ -106,10 +106,10 @@ def test_pmdarima_utils_ndiffs_calculation(data):
 
 def test_pmdarima_utils_nsdiffs_calculation(data):
 
-    nsdiffs = PmdarimaUtils(
+    nsdiffs = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     ).calculate_nsdiffs(
-        df=data.df, group_key_columns=data.key_columns, m=7, test="ocsb", max_D=7
+        m=7, test="ocsb", max_D=7
     )
     assert len(nsdiffs) == SERIES_TEST_COUNT
     for k, v in nsdiffs.items():
@@ -119,9 +119,9 @@ def test_pmdarima_utils_nsdiffs_calculation(data):
 
 def test_pmdarima_constancy_validation(data):
 
-    constancy = PmdarimaUtils(
+    constancy = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
-    ).calculate_is_constant(data.df, data.key_columns)
+    ).calculate_is_constant()
 
     assert len(constancy) == SERIES_TEST_COUNT
     for value in constancy.values():
@@ -130,15 +130,17 @@ def test_pmdarima_constancy_validation(data):
 
 def test_pmdarima_ndiffs_override_class_args(data):
 
-    ndiffs = PmdarimaUtils(
+    ndiffs = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     ).calculate_ndiffs(alpha=0.4, max_d=4)
 
     base_template = AutoARIMA(d=10, out_of_sample_size=7)
 
-    model = GroupedPmdarima("y", "ds", base_template).fit(
+    model = GroupedPmdarima(base_template).fit(
         df=data.df,
         group_key_columns=data.key_columns,
+        y_col="y",
+        datetime_col="ds",
         ndiffs=ndiffs,
         silence_warnings=True,
     )
@@ -151,7 +153,7 @@ def test_pmdarima_ndiffs_override_class_args(data):
 
 def test_pmdarima_calculate_acf_full_args(data):
 
-    acf_data = PmdarimaUtils(
+    acf_data = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     ).calculate_acf(unbiased=True, nlags=90, qstat=True, fft=True, alpha=0.1)
 
@@ -167,7 +169,7 @@ def test_pmdarima_calculate_acf_full_args(data):
 
 def test_pmdarima_calculate_acf_minimal_args(data):
 
-    acf_data = PmdarimaUtils(
+    acf_data = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     ).calculate_acf(unbiased=False, nlags=90, qstat=False, fft=False, alpha=None)
     for group, payload in acf_data.items():
@@ -181,7 +183,7 @@ def test_pmdarima_calculate_acf_minimal_args(data):
 
 def test_pmdarima_calculate_pacf_full_args(data):
 
-    pacf_data = PmdarimaUtils(
+    pacf_data = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     ).calculate_pacf(nlags=90, method="yw", alpha=0.05)
 
@@ -193,7 +195,7 @@ def test_pmdarima_calculate_pacf_full_args(data):
 
 def test_pmdarima_calculate_pacf_minimal_args(data):
 
-    pacf_data = PmdarimaUtils(
+    pacf_data = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     ).calculate_pacf()
 
@@ -205,7 +207,7 @@ def test_pmdarima_calculate_pacf_minimal_args(data):
 
 def test_pmdarima_generate_diff(data):
 
-    diff = PmdarimaUtils(
+    diff = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     ).generate_diff(lag=2, differences=1)
 
@@ -217,7 +219,7 @@ def test_pmdarima_generate_diff(data):
 
 def test_pmdarima_reconstruct_series_from_diff_inv(data):
 
-    utils = PmdarimaUtils(
+    utils = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     )
     diff = utils.generate_diff(lag=2, differences=1)
@@ -233,7 +235,7 @@ def test_pmdarima_reconstruct_series_from_diff_inv(data):
 
 def test_pmdarima_diff_inv_fails_with_invalid_data(data):
 
-    utils = PmdarimaUtils(
+    utils = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     )
     diff = utils.generate_diff(lag=1, differences=1)

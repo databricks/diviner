@@ -30,9 +30,13 @@ if __name__ == "__main__":
 
     # Utilize pmdarima's AutoARIMA to auto-tune the ARIMA order values
     auto_arima_obj = AutoARIMA(out_of_sample_size=60, maxiter=100)
-    base_auto_arima = GroupedPmdarima(
-        y_col="y", datetime_col="ds", model_template=auto_arima_obj
-    ).fit(df=training_data, group_key_columns=group_key_columns, silence_warnings=True)
+    base_auto_arima = GroupedPmdarima(model_template=auto_arima_obj).fit(
+        df=training_data,
+        group_key_columns=group_key_columns,
+        y_col="y",
+        datetime_col="ds",
+        silence_warnings=True,
+    )
 
     # Save to local directory
     save_dir = "/tmp/group_pmdarima/autoarima.gpmd"

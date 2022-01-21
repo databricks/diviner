@@ -1,5 +1,5 @@
 from examples.example_data_generator import generate_example_data
-from diviner import GroupedPmdarima, PmdarimaUtils
+from diviner import GroupedPmdarima, PmdarimaAnalyzer
 from pmdarima.pipeline import Pipeline
 from pmdarima import AutoARIMA
 from pmdarima.model_selection import SlidingWindowForecastCV
@@ -42,7 +42,7 @@ if __name__ == "__main__":
         ]
     )
 
-    diff_utils = PmdarimaUtils(
+    diff_utils = PmdarimaAnalyzer(
         df=training_data,
         group_key_columns=group_key_columns,
         y_col="y",
@@ -54,11 +54,11 @@ if __name__ == "__main__":
         max_d=4,
     )
 
-    grouped_model = GroupedPmdarima(
-        y_col="y", datetime_col="ds", model_template=pipeline
-    ).fit(
+    grouped_model = GroupedPmdarima(model_template=pipeline).fit(
         df=training_data,
         group_key_columns=group_key_columns,
+        y_col="y",
+        datetime_col="ds",
         ndiffs=ndiff,
         silence_warnings=True,
     )
@@ -74,7 +74,9 @@ if __name__ == "__main__":
     get_and_print_model_metrics_params(loaded_model)
 
     print("\nPredictions:\n", "-" * 40)
-    prediction = loaded_model.predict(n_periods=30, alpha=0.1, return_conf_int=True)
+    prediction = loaded_model.predict(
+        n_periods=30, alpha=0.1, predict_col="forecasted_values", return_conf_int=True
+    )
     print(prediction.to_string())
 
     cv_evaluator = SlidingWindowForecastCV(h=90, step=120, window_size=180)
