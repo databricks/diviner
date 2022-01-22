@@ -2,8 +2,11 @@
 
 Tutorials and Examples
 ===================================
-The links below will direct you to tutorials and examples of how to use Diviner with varying underlying forecasting libraries.
+The links below will direct you to tutorials and examples of how to use Diviner with various underlying forecasting libraries.
 
-* Grouped Prophet
-    * `Script <https://github.com/databricks/diviner/tree/main/examples/grouped_prophet_example.py>`_
-    * `Jupyter Notebook <https://github.com/databricks/diviner/tree/main/examples/grouped_prophet_example_jupyter.ipynb>`_
+
+.. toctree::
+    :maxdepth: 1
+
+    GroupedProphet Notebook <notebooks/grouped_prophet_example_jupyter>
+    GroupedProphet Script <grouped_prophet_script_link>

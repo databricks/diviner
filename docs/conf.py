@@ -14,6 +14,8 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../examples/'))
+
 
 # -- Project information -----------------------------------------------------
 
@@ -33,9 +35,10 @@ release = diviner.version.VERSION
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
-    "sphinx.ext.napoleon",
+    "nbsphinx"
 ]
 
 # Add any paths that contain templates here, relative to this directory.

@@ -20,49 +20,13 @@ these common use cases that rely on the `Prophet <https://facebook.github.io/pro
 
 Grouped Prophet API
 -------------------
-In order to create a :py:class:`GroupedProphet <diviner.GroupedProphet>` instance, there are no required attributes to
-define. Utilizing the default values will, as with the underlying ``Prophet`` library, utilize the default values to
-perform model fitting.
-However, there are arguments that can be overridden which are pass-through values to the individual ``Prophet``
-instances that are created for each group. Since these are ``**kwargs`` entries, the names will be argument names for
-the respective arguments in ``Prophet``.
+The following sections provide a basic overview of using the :py:class:`GroupedProphet <diviner.GroupedProphet>` API,
+from fitting of the grouped models, predicting forecasted data, saving, loading, and customization of the underlying
+Prophet instances.
 
-To see a full listing of available arguments for the given version of ``Prophet`` that you are using, the simplest
-(as well as the recommended manner in the library documentation) is to run a ``help()`` command in a Python REPL:
-
-.. code-block:: python
-
-    from prophet import Prophet
-    help(Prophet)
-
-An example of overriding many of the arguments within the underlying ``Prophet`` model for the ``GroupedProphet`` API
-is shown below.
-
-.. code-block:: python
-
-    grouped_prophet_model = GroupedProphet(
-        growth='linear',
-        changepoints=None,
-        n_changepoints=90,
-        changepoint_range=0.8,
-        yearly_seasonality='auto',
-        weekly_seasonality='auto',
-        daily_seasonality='auto',
-        holidays=None,
-        seasonality_mode='additive',
-        seasonality_prior_scale=10.0,
-        holidays_prior_scale=10.0,
-        changepoint_prior_scale=0.05,
-        mcmc_samples=0,
-        interval_width=0.8,
-        uncertainty_samples=1000,
-        stan_backend=None
-    )
-
-Class signature:
-
-.. autoclass:: diviner.GroupedProphet
-    :members:
+To see working end-to-end examples, you can go :ref:`tutorials-and-examples`. The examples will allow you
+to explore the data structures required for training, how to extract forecasts for each group, and demonstrations of the
+saving and loading of trained models.
 
 .. _fit:
 
@@ -203,6 +167,53 @@ Loading a saved :py:class:`GroupedProphet <diviner.GroupedProphet>` model is don
     not useful to store and would require additional dependencies that are not involved in cross validation, parameter
     extraction, forecasting, or predicting. If you need access to the ``PyStan`` backend, retrain the model and access
     the underlying solver prior to serializing to disk.
+
+Overriding Prophet settings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In order to create a :py:class:`GroupedProphet <diviner.GroupedProphet>` instance, there are no required attributes to
+define. Utilizing the default values will, as with the underlying ``Prophet`` library, utilize the default values to
+perform model fitting.
+However, there are arguments that can be overridden which are pass-through values to the individual ``Prophet``
+instances that are created for each group. Since these are ``**kwargs`` entries, the names will be argument names for
+the respective arguments in ``Prophet``.
+
+To see a full listing of available arguments for the given version of ``Prophet`` that you are using, the simplest
+(as well as the recommended manner in the library documentation) is to run a ``help()`` command in a Python REPL:
+
+.. code-block:: python
+
+    from prophet import Prophet
+    help(Prophet)
+
+An example of overriding many of the arguments within the underlying ``Prophet`` model for the ``GroupedProphet`` API
+is shown below.
+
+.. code-block:: python
+
+    grouped_prophet_model = GroupedProphet(
+        growth='linear',
+        changepoints=None,
+        n_changepoints=90,
+        changepoint_range=0.8,
+        yearly_seasonality='auto',
+        weekly_seasonality='auto',
+        daily_seasonality='auto',
+        holidays=None,
+        seasonality_mode='additive',
+        seasonality_prior_scale=10.0,
+        holidays_prior_scale=10.0,
+        changepoint_prior_scale=0.05,
+        mcmc_samples=0,
+        interval_width=0.8,
+        uncertainty_samples=1000,
+        stan_backend=None
+    )
+
+Class signature:
+
+.. autoclass:: diviner.GroupedProphet
+    :members:
 
 Utilities
 ---------
