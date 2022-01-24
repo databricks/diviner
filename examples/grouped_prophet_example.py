@@ -1,19 +1,30 @@
+
 from examples.example_data_generator import generate_example_data
 from diviner import GroupedProphet
 
-if __name__ == "__main__":
-    # This function call will generate synthetic group time series data in a normalized format.
-    # The structure will be of:
-    # |ds |y |group_key_1 | group_key_2| group_key_3 |
-    # With the grouping key values that are generated per ds and y values assigned in a
-    # non-deterministic fashion.
 
-    # For utililzation of this API, the normalized representation of the data is required, such that
-    # a particular target variables' data 'y' and the associated indexed datetime values in 'ds' are
-    # 'stacked' (unioned) from a more traditional denormalized data storage paradigm.
+def execute_grouped_prophet():
+    """
+    This function call will generate synthetic group time series data in a normalized format.
+    The structure will be of:
 
-    # For guidance on this data transposition from denormalized representations, see:
-    # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.melt.html
+    ============ ====== =========== =========== ===========
+    ds           y      group_key_1 group_key_2 group_key_3
+    ============ ====== =========== =========== ===========
+    "2016-02-01" 1234.5 A           B           C
+    ============ ====== =========== =========== ===========
+
+    With the grouping key values that are generated per ``ds`` and ``y`` values assigned in a
+    non-deterministic fashion.
+
+    For utililzation of this API, the normalized representation of the data is required, such that
+    a particular target variables' data 'y' and the associated indexed datetime values in ``'ds'``
+    are 'stacked' (unioned) from a more traditional denormalized data storage paradigm.
+
+    For guidance on this data transposition from denormalized representations, see:
+    https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.melt.html
+    """
+
     generated_data = generate_example_data(
         column_count=3,
         series_count=10,
@@ -61,3 +72,7 @@ if __name__ == "__main__":
     params = retrieved_model.extract_model_params()
 
     print(f"Model parameters:\n{params.to_string()}")
+
+
+if __name__ == "__main__":
+    execute_grouped_prophet()
