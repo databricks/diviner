@@ -25,6 +25,7 @@ Examples of each of the wrapped forecasting libraries can be found :ref:`here<tu
    quickstart
    tutorials-and-examples/index
    grouped_prophet
+   data_processing
    contributing
    changelog
 
