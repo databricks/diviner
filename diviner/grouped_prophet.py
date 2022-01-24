@@ -53,6 +53,8 @@ class GroupedProphet(GroupedForecaster):
         super().__init__()
         self._prophet_init_kwargs = kwargs
         self._master_key = "grouping_key"
+        self._datetime_col = "ds"
+        self._y_col = "y"
 
     def _fit_prophet(self, group_key, df, **kwargs):
 
@@ -119,7 +121,7 @@ class GroupedProphet(GroupedForecaster):
         _validate_keys_in_df(df, self._group_key_columns)
 
         grouped_data = PandasGroupGenerator(
-            self._group_key_columns
+            self._group_key_columns, self._datetime_col, self._y_col
         ).generate_processing_groups(df)
 
         # fit_model = [
@@ -198,8 +200,8 @@ class GroupedProphet(GroupedForecaster):
         _validate_keys_in_df(df, self._group_key_columns)
 
         grouped_data = PandasGroupGenerator(
-            self._group_key_columns
-        ).generate_processing_groups(df)
+            self._group_key_columns, self._datetime_col, self._y_col
+        ).generate_prediction_groups(df)
 
         return self._run_predictions(grouped_data)
 

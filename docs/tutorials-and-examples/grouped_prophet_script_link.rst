@@ -1,8 +1,14 @@
 GroupedProphet Example Script
 =============================
-.. note:: To see the full example, follow the link [source] to the right of the script function name below.
 
-.. automodule:: examples.grouped_prophet_example
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. literalinclude:: /../examples/grouped_prophet_example.py
+    :caption: GroupedProphet Script
+    :language: python
+    :linenos:
+
+.. note:: To run this example for yourself with the data generator example, utlize the following code:
+
+.. literalinclude:: /../examples/example_data_generator.py
+    :caption: Synthetic Data Generator
+    :language: python
+    :linenos:
