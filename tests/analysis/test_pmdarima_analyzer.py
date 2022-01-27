@@ -219,14 +219,14 @@ def test_pmdarima_generate_diff(data):
 
 def test_pmdarima_reconstruct_series_from_diff_inv(data):
 
-    utils = PmdarimaAnalyzer(
+    analyzer = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     )
-    diff = utils.generate_diff(lag=2, differences=1)
+    diff = analyzer.generate_diff(lag=2, differences=1)
 
-    group_dfs = utils._group_df
+    group_dfs = analyzer._group_df
 
-    inverted = utils.generate_diff_inversion(diff, lag=2, differences=1, recenter=True)
+    inverted = analyzer.generate_diff_inversion(diff, lag=2, differences=1, recenter=True)
 
     for group, data in group_dfs:
 
@@ -235,10 +235,10 @@ def test_pmdarima_reconstruct_series_from_diff_inv(data):
 
 def test_pmdarima_diff_inv_fails_with_invalid_data(data):
 
-    utils = PmdarimaAnalyzer(
+    analyzer = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     )
-    diff = utils.generate_diff(lag=1, differences=1)
+    diff = analyzer.generate_diff(lag=1, differences=1)
 
     with pytest.raises(
         DivinerException, match="group_diff_data does not contain the key `diff`"
@@ -246,7 +246,7 @@ def test_pmdarima_diff_inv_fails_with_invalid_data(data):
         diff_mod = {}
         for key, value in diff.items():
             diff_mod[key] = {"series_start": value.get("series_start")}
-        utils.generate_diff_inversion(
+        analyzer.generate_diff_inversion(
             group_diff_data=diff_mod, lag=1, differences=1, recenter=True
         )
 
@@ -256,6 +256,6 @@ def test_pmdarima_diff_inv_fails_with_invalid_data(data):
         diff_mod = {}
         for key, value in diff.items():
             diff_mod[key] = {"diff": value.get("diff")}
-        utils.generate_diff_inversion(
+        analyzer.generate_diff_inversion(
             group_diff_data=diff_mod, lag=1, differences=1, recenter=True
         )

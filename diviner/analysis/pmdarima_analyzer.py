@@ -61,10 +61,11 @@ class PmdarimaAnalyzer:
     def _create_group_df(self):
         if not self._group_df:
             self._group_df = PandasGroupGenerator(
-                self._group_key_columns
+                self._group_key_columns, self._datetime_col, self._y_col
             ).generate_processing_groups(self._df)
 
     def _decompose_group(self, group_df, group_key, m, type_, filter_):
+        group_df.reset_index(inplace=True)
         group_decomposition = decompose(
             x=group_df[self._y_col], type_=type_, m=m, filter_=filter_
         )
@@ -325,6 +326,7 @@ class PmdarimaAnalyzer:
         self._create_group_df()
         group_diff_data = {}
         for group, df in self._group_df:
+            df.reset_index(inplace=True)
             group_data = {
                 "diff": diff(x=df[self._y_col], lag=lag, differences=differences),
                 "series_start": df[self._y_col][0],

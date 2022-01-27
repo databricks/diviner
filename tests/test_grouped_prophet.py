@@ -160,6 +160,7 @@ def test_prophet_with_bad_group_data():
         model = GroupedProphet().fit(train_df_add, train.key_columns)
     assert ("bad", "data") not in model.model.keys()
 
+
 def test_prophet_df_naming_overrides():
 
     train = data_generator.generate_test_data(2, 1, 1000, "2020-01-01", 1)
@@ -174,3 +175,18 @@ def test_prophet_df_naming_overrides():
 
     assert len(params) == 1
 
+
+def test_prophet_manual_predict():
+    train = data_generator.generate_test_data(2, 1, 1000, "2020-01-01", 1)
+    train_df = train.df
+
+    predict_df = train_df[["key1", "key0", "ds"]][-10:]
+
+    model = GroupedProphet().fit(train_df, train.key_columns)
+
+    prediction = model.predict(predict_df)
+
+    assert len(prediction) == 10
+
+    for idx, row in prediction.iterrows():
+        assert row["yhat"] > 0

@@ -2,6 +2,7 @@ import inspect
 import os
 import warnings
 from copy import deepcopy
+from typing import List, Dict
 
 from pmdarima import ARIMA, AutoARIMA
 from pmdarima.pipeline import Pipeline
@@ -166,9 +167,9 @@ class GroupedPmdarima(GroupedForecaster):
         group_key_columns,
         y_col: str,
         datetime_col: str,
-        exog_cols: list[str] = None,
-        ndiffs: dict = None,
-        nsdiffs: dict = None,
+        exog_cols: List[str] = None,
+        ndiffs: Dict = None,
+        nsdiffs: Dict = None,
         silence_warnings: bool = False,
         **fit_kwargs,
     ):
@@ -247,7 +248,7 @@ class GroupedPmdarima(GroupedForecaster):
         _validate_keys_in_df(df, self._group_key_columns)
 
         grouped_data = PandasGroupGenerator(
-            self._group_key_columns
+            self._group_key_columns, self._datetime_col, self._y_col
         ).generate_processing_groups(df)
 
         dt_indexed_group_data = apply_datetime_index_to_groups(
@@ -292,7 +293,8 @@ class GroupedPmdarima(GroupedForecaster):
             prediction_raw = pd.DataFrame.from_records(prediction).T
             prediction_raw.columns = [self._predict_col, "_yhat_err"]
             prediction_df = pd.DataFrame(
-                prediction_raw["_yhat_err"].to_list(), columns=["yhat_lower", "yhat_upper"]
+                prediction_raw["_yhat_err"].to_list(),
+                columns=["yhat_lower", "yhat_upper"],
             )
             prediction_df.insert(
                 loc=0, column=self._predict_col, value=prediction_raw[self._predict_col]
@@ -314,7 +316,7 @@ class GroupedPmdarima(GroupedForecaster):
 
         self._fit_check()
         processing_data = PandasGroupGenerator(
-            self._group_key_columns
+            self._group_key_columns, self._datetime_col, self._y_col
         )._get_df_with_master_key_column(df)
 
         prediction_collection = [
@@ -447,7 +449,7 @@ class GroupedPmdarima(GroupedForecaster):
                             Default: ``np.nan`` (a silent ignore of the failure)
         :param verbosity: print verbosity level for ``pmdarima``'s cross validation stages.
                           Default: ``0`` (no printing to stdout)
-        :return: ``Pandas`` ``DataFrame`` containing the group information and calculated cross
+        :return: ``Pandas DataFrame`` containing the group information and calculated cross
                  validation metrics for each group.
         """
 
@@ -457,7 +459,7 @@ class GroupedPmdarima(GroupedForecaster):
 
         self._fit_check()
         group_data = PandasGroupGenerator(
-            self._group_key_columns
+            self._group_key_columns, self._datetime_col, self._y_col
         ).generate_processing_groups(df)
 
         dt_group_data = apply_datetime_index_to_groups(group_data, self._datetime_col)

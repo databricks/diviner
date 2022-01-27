@@ -19,8 +19,8 @@ if __name__ == "__main__":
     # define each group
     generated_data = generate_example_data(
         column_count=3,
-        series_count=12,
-        series_size=365 * 6,
+        series_count=3,
+        series_size=365 * 3,
         start_dt="2019-01-01",
         days_period=1,
     )
@@ -42,13 +42,13 @@ if __name__ == "__main__":
         ]
     )
 
-    diff_utils = PmdarimaAnalyzer(
+    diff_analyzer = PmdarimaAnalyzer(
         df=training_data,
         group_key_columns=group_key_columns,
         y_col="y",
         datetime_col="ds",
     )
-    ndiff = diff_utils.calculate_ndiffs(
+    ndiff = diff_analyzer.calculate_ndiffs(
         alpha=0.05,
         test="kpss",
         max_d=4,

@@ -15,12 +15,12 @@ def get_and_print_model_metrics_params(grouped_model):
 
 if __name__ == "__main__":
 
-    # Generate 6 years of daily data across 4 different groups, defined by 3 columns that
+    # Generate a few years of daily data across 4 different groups, defined by 3 columns that
     # define each group
     generated_data = generate_example_data(
         column_count=3,
         series_count=4,
-        series_size=365 * 6,
+        series_size=365 * 4,
         start_dt="2019-01-01",
         days_period=1,
     )
@@ -55,13 +55,13 @@ if __name__ == "__main__":
     print(prediction.to_string())
 
     print("\nCross validation metric results:\n", "-" * 40)
-    cross_validator = SlidingWindowForecastCV(h=90, step=180, window_size=730)
+    cross_validator = SlidingWindowForecastCV(h=90, step=365, window_size=730)
     cv_results = loaded_model.cross_validate(
         df=training_data,
         metrics=["mean_squared_error", "smape", "mean_absolute_error"],
         cross_validator=cross_validator,
         error_score=np.nan,
-        verbosity=3,
+        verbosity=4,
     )
 
     print(cv_results.to_string())

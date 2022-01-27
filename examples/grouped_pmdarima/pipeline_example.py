@@ -17,12 +17,12 @@ def get_and_print_model_metrics_params(grouped_model):
 
 if __name__ == "__main__":
 
-    # Generate 6 years of daily data across 4 different groups, defined by 3 columns that
+    # Generate a few years of daily data across 2 different groups, defined by 3 columns that
     # define each group
     generated_data = generate_example_data(
         column_count=3,
-        series_count=4,
-        series_size=365 * 6,
+        series_count=2,
+        series_size=365 * 3,
         start_dt="2019-01-01",
         days_period=1,
     )
