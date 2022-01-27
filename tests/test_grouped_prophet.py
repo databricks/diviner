@@ -161,6 +161,21 @@ def test_prophet_with_bad_group_data():
     assert ("bad", "data") not in model.model.keys()
 
 
+def test_prophet_df_naming_overrides():
+
+    train = data_generator.generate_test_data(2, 1, 1000, "2020-01-01", 1)
+    train_df = train.df
+    train_df.rename(columns={"ds": "datetime", "y": "sales"}, inplace=True)
+
+    assert {"datetime", "sales"}.issubset(set(train_df.columns))
+
+    model = GroupedProphet().fit(train_df, train.key_columns, "sales", "datetime")
+
+    params = model.extract_model_params()
+
+    assert len(params) == 1
+
+
 def test_prophet_manual_predict():
     train = data_generator.generate_test_data(2, 1, 1000, "2020-01-01", 1)
     train_df = train.df

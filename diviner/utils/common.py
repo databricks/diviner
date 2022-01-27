@@ -82,3 +82,43 @@ def _validate_keys_in_df(df, key_columns: Tuple):
             f"Not all key grouping columns supplied: {key_columns} are present "
             f"in the submitted df: {columns_list}"
         )
+
+
+def create_reporting_df(extract_dict, master_key, group_key_columns):
+    """
+    Structural consolidation extract for a grouped model to generate an MLflow
+    artifact-compatible representation of each of the group's model attributes (metrics or
+    params) for a single run.
+    :param extract_dict: Extracted attributes from a model
+    :param master_key: The master grouping key column name
+    :param group_key_columns: The names of the grouping key columns used to train
+                              a single instance of a grouped model
+    :return: A Pandas DataFrame containing the attributes, grouping keys, and master grouping key
+             as columns with a row for each unique group's model.
+    """
+    base_df = pd.DataFrame.from_dict(extract_dict).T.sort_index(inplace=False)
+    base_df[master_key] = base_df.index.to_numpy()
+    base_df.index.names = group_key_columns
+    extracted_df = base_df.reset_index(inplace=False)
+    extracted_df.insert(
+        0,
+        f"{master_key}_columns",
+        extracted_df.apply(lambda x: tuple(group_key_columns), axis=1),
+    )
+    extracted_df.drop(columns=[master_key], axis=1, inplace=True)
+    return extracted_df
+
+
+def _get_last_datetime_per_group(dt_indexed_group_data):
+    return {group: df.index.max() for group, df in dt_indexed_group_data}
+
+
+def _get_datetime_freq_per_group(dt_indexed_group_data):
+    group_output = {}
+    for group, df in dt_indexed_group_data:
+        registered_freq = df.index.freq
+        if registered_freq:
+            group_output[group] = registered_freq
+        else:
+            group_output[group] = pd.infer_freq(df.index)
+    return group_output

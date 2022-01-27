@@ -17,10 +17,10 @@ from diviner.scoring.prophet_cross_validate import (
 from diviner.utils.prophet_utils import (
     generate_future_dfs,
     _cross_validate_and_score_model,
-    _create_reporting_df,
     _extract_params,
 )
 from diviner.utils.common import (
+    create_reporting_df,
     _restructure_fit_payload,
     _validate_keys_in_df,
     _restructure_predictions,
@@ -39,7 +39,7 @@ class GroupedProphet(GroupedForecaster):
     grouped models within the submitted DataFrame.
 
     For the Prophet initialization constructor, showing which arguments are available to be
-    passed in as ``kwargs`` in this class' constructor, see:
+    passed in as ``kwargs`` in this class constructor, see:
     https://github.com/facebook/prophet/blob/main/python/prophet/forecaster.py
     """
 
@@ -70,7 +70,7 @@ class GroupedProphet(GroupedForecaster):
             warnings.warn(*_warning, stacklevel=2)
             print(f"WARNING: {_warning[0]}")
 
-    def fit(self, df, group_key_columns, **kwargs):
+    def fit(self, df, group_key_columns, y_col="y", datetime_col="ds", **kwargs):
         """
         Main ``fit`` method for executing a Prophet ``fit`` on the submitted DataFrame, grouped by
         the ``group_key_columns`` submitted.
@@ -83,8 +83,13 @@ class GroupedProphet(GroupedForecaster):
         For a full description of all parameters that are available to the optimizer, run the
         following in a shell:
 
-        ``import pystan``
-        ``help(pystan.StanModel.optimizing)``
+        .. code-block:: python
+            :caption: Retrieving pystan parameters
+
+            import pystan
+
+            help(pystan.StanModel.optimizing)
+
 
         :param df: Normalized pandas DataFrame containing ``group_key_columns``, a ``'ds'`` column,
                    and a target ``'y'`` column.
@@ -103,15 +108,21 @@ class GroupedProphet(GroupedForecaster):
                                   referenced in the ``df`` param, group_key_columns could be:
                                   (``'region'``, ``'zone'``)
                                   Specifying an incomplete grouping collection, while valid
-                                  through this API (i.e., (``'region'``)), can cause serious
-                                  problems with any forecast that is built with this API. Ensure
-                                  that all relevant keys are defined in the input ``df`` and
-                                  declared in this param to ensure that the appropriate per
-                                  univariate series data is used to train each model.
-        :param kwargs: overrides for underlying Prophet ``fit`` kwargs (i.e., optimizer backend
-                       library configuration overrides) for further information, see:
+                                  through this API (i.e., ('region')), can cause serious problems
+                                  with any forecast that is built with this API. Ensure that all
+                                  relevant keys are defined in the input `df` and declared in this
+                                  param to ensure that the appropriate per-univariate series data
+                                  is used to train each model.
+        :param y_col: The name of the column within the DataFrame input to any method within this
+                      class that contains the endogenous regressor term (the raw data that will
+                      be used to train and use as a basis for forecasting).
+        :param datetime_col: The name of the column within the DataFrame input that defines the
+                             datetime or date values associated with each row of the endogenous
+                             regressor (``y_col``) data.
+        :param kwargs: overrides for underlying ``Prophet`` ``.fit()`` ``**kwargs`` (i.e., optimizer
+                       backend library configuration overrides) for further information, see:
                        (https://facebook.github.io/prophet/docs/diagnostics.html\
-                       #hyperparameter-tuning)
+                       #hyperparameter-tuning).
         :return: object instance (self) of GroupedProphet
         """
 
@@ -120,13 +131,15 @@ class GroupedProphet(GroupedForecaster):
 
         _validate_keys_in_df(df, self._group_key_columns)
 
+        if y_col != "y":
+            df.rename(columns={y_col: "y"}, inplace=True)
+        if datetime_col != "ds":
+            df.rename(columns={datetime_col: "ds"}, inplace=True)
+
         grouped_data = PandasGroupGenerator(
             self._group_key_columns, self._datetime_col, self._y_col
         ).generate_processing_groups(df)
 
-        # fit_model = [
-        #     self._fit_prophet(group_key, df, **kwargs) for group_key, df in grouped_data
-        # ]
         fit_model = []
         for group_key, df in grouped_data:
             group_model = self._fit_prophet(group_key, df, **kwargs)
@@ -153,7 +166,7 @@ class GroupedProphet(GroupedForecaster):
             raise DivinerException(
                 f"The grouping key '{group_key}' is not in the model instance."
             )
-        model = deepcopy(self.model[group_key])
+        model = deepcopy(self.model.get(group_key))
         raw_prediction = model.predict(df)
         raw_prediction.insert(
             0, self._master_key, raw_prediction.apply(lambda x: group_key, axis=1)
@@ -166,7 +179,7 @@ class GroupedProphet(GroupedForecaster):
         Private method for running predictions for each group in the prediction processing
         collection with a list comprehension.
 
-        :param grouped_data: Collection of List[(``master_group_key``, ``future_df``)]
+        :param grouped_data: Collection of ``List[(master_group_key, future_df)]``
         :return: A consolidated (unioned) single DataFrame of all groups forecasts
         """
         predictions = [
@@ -177,7 +190,7 @@ class GroupedProphet(GroupedForecaster):
             predictions, self._group_key_columns, self._master_key
         )
 
-    def predict(self, df):
+    def predict(self, df, predict_col: str = "yhat"):
         """
         Main prediction method for generating forecast values based on the group keys and dates
         for each that are passed in to this method. The structure of the DataFrame submitted to
@@ -194,6 +207,8 @@ class GroupedProphet(GroupedForecaster):
 
         :param df: Normalized DataFrame consisting of grouping key entries and the dates to
                    forecast for each group.
+        :param predict_col: The name of the column in the output ``DataFrame`` that contains the
+                            forecasted series data.
         :return: A consolidated (unioned) single DataFrame of all groups forecasts
         """
         self._fit_check()
@@ -203,7 +218,12 @@ class GroupedProphet(GroupedForecaster):
             self._group_key_columns, self._datetime_col, self._y_col
         ).generate_prediction_groups(df)
 
-        return self._run_predictions(grouped_data)
+        predictions = self._run_predictions(grouped_data)
+
+        if predict_col != "yhat":
+            predictions.rename(columns={"yhat": predict_col}, inplace=True)
+
+        return predictions
 
     def cross_validate(
         self, horizon, period=None, initial=None, parallel=None, cutoffs=None
@@ -322,7 +342,7 @@ class GroupedProphet(GroupedForecaster):
             for group_key, model in self.model.items()
         }
 
-        return _create_reporting_df(scores, self._master_key, self._group_key_columns)
+        return create_reporting_df(scores, self._master_key, self._group_key_columns)
 
     def extract_model_params(self):
         """
@@ -337,7 +357,7 @@ class GroupedProphet(GroupedForecaster):
         model_params = {
             group_key: _extract_params(model) for group_key, model in self.model.items()
         }
-        return _create_reporting_df(
+        return create_reporting_df(
             model_params, self._master_key, self._group_key_columns
         )
 
