@@ -3,7 +3,7 @@
 Grouped Prophet
 ===============
 
-The Grouped Prophet model is an multi-series orchestration framework for building multiple individual models
+The Grouped Prophet model is a multi-series orchestration framework for building multiple individual models
 of related, but isolated series data. For example, a project that required the forecasting of airline passengers at
 major airports around the world would historically require individual orchestration of data acquisition, hyperparameter
 definitions, model training, metric validation, serialization, and registration of thousands of individual models.
@@ -22,9 +22,9 @@ Grouped Prophet API
 -------------------
 The following sections provide a basic overview of using the :py:class:`GroupedProphet <diviner.GroupedProphet>` API,
 from fitting of the grouped models, predicting forecasted data, saving, loading, and customization of the underlying
-Prophet instances.
+``Prophet`` instances.
 
-To see working end-to-end examples, you can go :ref:`tutorials-and-examples`. The examples will allow you
+To see working end-to-end examples, you can go to :ref:`tutorials-and-examples`. The examples will allow you
 to explore the data structures required for training, how to extract forecasts for each group, and demonstrations of the
 saving and loading of trained models.
 
@@ -38,7 +38,7 @@ method is used. Calling this method will process the input ``DataFrame`` to crea
 fit a ``Prophet`` model on each individual series, and persist the trained state of each group's model to the
 object instance.
 
-The required arguments for the :py:meth:`fit <diviner.GroupedProphet.fit>` method are:
+The arguments for the :py:meth:`fit <diviner.GroupedProphet.fit>` method are:
 
 df
     A 'normalized' DataFrame that contains an endogenous regressor column (the 'y' column), a date (or datetime) column
@@ -48,10 +48,10 @@ df
 
 group_key_columns
     The names of the columns within ``df`` that, when combined (in order supplied) define distinct series. See the
-    quickstart guide for further information.
+    :ref:`quickstart guide <quickstart>` for further information.
 
 kwargs
-    Arguments that are used for overrides to the ``Prophet`` pystan optimizer. Details of what parameters are available
+    *[Optional]* Arguments that are used for overrides to the ``Prophet`` pystan optimizer. Details of what parameters are available
     and how they might affect the optimization of the model can be found by running
     ``help(pystan.StanModel.optimizing)`` from a Python REPL.
 
@@ -210,11 +210,6 @@ is shown below.
         stan_backend=None
     )
 
-Class signature:
-
-.. autoclass:: diviner.GroupedProphet
-    :members:
-
 Utilities
 ---------
 
@@ -330,7 +325,7 @@ metrics
     following will be tested:
 
 * "mae" (`mean absolute error <https://scikit-learn.org/stable/modules/model_evaluation.html#mean-absolute-error>`_)
-* "mape" (`mean absolute percentage error <https://scikit-learn.org/stable/modules/model_evaluation.html#mean-absolute_percentage-error>`_)
+* "mape" (`mean absolute percentage error <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_percentage_error.html#sklearn.metrics.mean_absolute_percentage_error>`_)
 * "mdape" (median absolute percentage error)
 * "mse" (`mean squared error <https://scikit-learn.org/stable/modules/model_evaluation.html#mean-squared-error>`_)
 * "rmse" (`root mean squared error <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html>`_)
@@ -426,3 +421,9 @@ monthly
     Boolean value that, if set to ``True``, will collate the windows to ensure that horizons are computed as a factor
     of months of the year from the cutoff date. This is only useful if the data has a yearly seasonality component to it
     that relates to day of month.
+
+Class Signature
+---------------
+
+.. autoclass:: diviner.GroupedProphet
+    :members:

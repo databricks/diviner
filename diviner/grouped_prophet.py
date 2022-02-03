@@ -378,12 +378,12 @@ class GroupedProphet(GroupedForecaster):
         fit DataFrame did not have consistent datetime values within the ``'ds'`` column for each
         group.
 
+        Note: For full listing of supported periodicity strings for the ``frequency`` parameter,
+        see: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+
         :param horizon: The number of row events to forecast
         :param frequency: The frequency (periodicity) of Pandas date_range format
                           (i.e., ``'D'``, ``'M'``, ``'Y'``)
-                          note see for full listing of available strings:
-                          (https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.\
-                          html#offset-aliases)
         :return: A consolidated (unioned) single DataFrame of forecasts for all groups
         """
 

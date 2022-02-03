@@ -14,6 +14,7 @@ To get started with Diviner, see the quickstart guide (:ref:`quickstart`).
 Individual forecasting library API guides can be found here:
 
 * :ref:`Grouped Prophet API <grouped_prophet>`
+* :ref:`Grouped Pmdarima API <grouped_pmdarima>`
 
 Examples of each of the wrapped forecasting libraries can be found :ref:`here<tutorials-and-examples>`.
 
@@ -25,6 +26,7 @@ Examples of each of the wrapped forecasting libraries can be found :ref:`here<tu
    quickstart
    tutorials-and-examples/index
    grouped_prophet
+   grouped_pmdarima
    data_processing
    contributing
    changelog
