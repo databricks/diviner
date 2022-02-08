@@ -1,4 +1,3 @@
-
 from examples.example_data_generator import generate_example_data
 from diviner import GroupedProphet
 

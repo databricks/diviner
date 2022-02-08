@@ -91,12 +91,14 @@ class PmdarimaAnalyzer:
                   setting ``m`` to ``'365'`` would be effective for yearly seasonality effects.)
         :param type_: The type of decomposition to perform.
                       One of: ``['additive', 'multiplicative']``
+
                       See: https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.arima.\
                       decompose.html
         :param filter_: Optional Array for performing convolution. This is specified as a
                         filter for coefficients (the Moving Average and/or
                         Auto Regressor coefficients) in reverse time order in order to filter out
                         a seasonal component.
+
                         Default: None
         :return: Pandas DataFrame with the decomposed trends for each group.
         """
@@ -117,16 +119,21 @@ class PmdarimaAnalyzer:
 
         :param alpha: significance level for determining if a pvalue used for testing a
                       value of ``'d'`` is significant or not.
-                      Default: 0.05
+
+                      Default: ``0.05``
         :param test: Type of unit test for stationarity determination to use.
                      Supported values: ``['kpss', 'adf', 'pp']``
                      See:
+
                      https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.arima.KPSSTest.\
                      html#pmdarima.arima.KPSSTest
+
                      https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.arima.PPTest.\
                      html#pmdarima.arima.PPTest
+
                      https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.arima.ADFTest.\
                      html#pmdarima.arima.ADFTest
+
                      Default: ``'kpss'``
         :param max_d: The max value for ``d`` to test.
         :return: Dictionary of ``{<group_key>: <optimal 'd' value>}``
@@ -150,12 +157,16 @@ class PmdarimaAnalyzer:
         :param test: Type of unit test for seasonality.
                      Supported tests: ``['ocsb', 'ch']``
                      See:
+
                      https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.arima.OCSBTest.\
                      html#pmdarima.arima.OCSBTest
+
                      https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.arima.CHTest.\
                      html#pmdarima.arima.CHTest
+
                      Default: ``'ocsb'``
         :param max_D: Maximum number of seasonal differences to test for.
+
                       Default: 2
         :return: Dictionary of ``{<group_key>: <optimal 'D' value>}``
         """
@@ -199,40 +210,57 @@ class PmdarimaAnalyzer:
         Utility for calculating the autocorrelation function for each group.
         Combined with a partial autocorrelation function calculation, the return values can
         greatly assist in setting AR, MA, or ARMA terms for a given model.
+
         The general rule to determine whether to use an AR, MA, or ARMA configuration for
         ARIMA (or AutoARIMA) is as follows:
-        ACF gradually trend to significance, PACF significance achieved after 1 lag -> AR model
-        ACF significance after 1 lag, PACF gradually trend to significance -> MA model
-        ACF gradually trend to significance, PACF gradually trend to significance -> ARMA model
+
+        * ACF gradually trend to significance, PACF significance achieved after 1 lag -> AR model
+        * ACF significance after 1 lag, PACF gradually trend to significance -> MA model
+        * ACF gradually trend to significance, PACF gradually trend to significance -> ARMA model
+
         These results can help to set the order terms of an ARIMA model (p and q) or,
         for AutoARIMA, set restrictions on maximum search space terms to assist in faster
         optimization of the model.
 
         :param unbiased: Boolean flag that sets the autocovariance denominator to ``'n-k'`` if
                          ``True`` and ``n`` if ``False``.
+
                          Default: ``False``
         :param nlags: The count of autocorrelation lags to calculate and return.
+
                       Default: ``40``
         :param qstat: Boolean flag to calculate and return the Ljung-Box statistic for each lag.
+
                       Default: ``False``
         :param fft: Boolean flag for whether to use fast fourier transformation (fft) for
                     computing the autocorrelation function. FFT is recommended for large time
                     series data sets.
+
                     Default: ``None``
         :param alpha: If specified, calculates and returns the confidence intervals for the
                       acf values at the level set (i.e., for 90% confidence, an alpha of 0.1 would
                       be set)
+
                       Default: ``None``
-        :param missing: handling of NaN values in the series data. Available options:
+        :param missing: handling of NaN values in the series data.
+
+                        Available options:
+
                         ``['none', 'raise', 'conservative', 'drop']``.
+
                         ``none``: no checks are performed.
+
                         ``raise``: an Exception is raised if NaN values are in the series.
+
                         ``conservative``: the autocovariance is calculated by removing NaN values
-                                        from the mean and cross-product calculations but are not
-                                        eliminated from the series.
+                        from the mean and cross-product calculations but are not eliminated from
+                        the series.
+
                         ``drop``: ``NaN`` values are removed from the series and adjacent values
-                                  to ``NaN``'s are treated as contiguous (which may invalidate
-                                  the results in certain situations).
+                        to ``NaN``'s are treated as contiguous (which may invalidate the results in
+                        certain situations).
+
+
                         Default: ``'none'``
         :param adjusted: Deprecation handler for the underlying ``statsmodels`` arguments that have
                          become the ``unbiased`` argument. This is a duplicated value for the
@@ -276,22 +304,29 @@ class PmdarimaAnalyzer:
         In conjunction with the autocorrelation function ``calculate_acf``, the values returned
         from a pacf calculation can assist in setting values or bounds on AR, MA, and ARMA terms
         for an ARIMA model.
+
         The general rule to determine whether to use an AR, MA, or ARMA configuration for
         ``ARIMA`` (or ``AutoARIMA``) is as follows:
-        ACF gradually trend to significance, PACF significance achieved after 1 lag -> AR model
-        ACF significance after 1 lag, PACF gradually trend to significance -> MA model
-        ACF gradually trend to significance, PACF gradually trend to significance -> ARMA model
+
+        * ACF gradually trend to significance, PACF significance achieved after 1 lag -> AR model
+        * ACF significance after 1 lag, PACF gradually trend to significance -> MA model
+        * ACF gradually trend to significance, PACF gradually trend to significance -> ARMA model
+
         These results can help to set the order terms of an ARIMA model (``p`` and ``q``) or,
         for ``AutoARIMA``, set restrictions on maximum search space terms to assist in faster
         optimization of the model.
 
         :param nlags: The count of partial autocorrelation lags to calculate and return.
+
                       Default: ``40``
         :param method: The method used for pacf calculation.
                        See the ``pmdarima`` docs for full listing of methods:
+
                        https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.utils.pacf.html
+
                        Default: ``'ywadjusted'``
         :param alpha: If specified, returns confidence intervals based on the alpha value supplied.
+
                       Default: ``None``
         :return: Dictionary of ``{<group_key>: {<pacf terms>: <values as array>}}``
         """
@@ -317,9 +352,11 @@ class PmdarimaAnalyzer:
         as the differenced values.
 
         :param lag: Determines the magnitude of the lag to calculate the differencing function for.
+
                     Default: ``1``
         :param differences: The order of the differencing to be performed. Note that values > 1
                             will generate n fewer results.
+
                             Default: ``1``
         :return: Dictionary of ``{<group_key>: {"series_start": <float>, "diff": <diff_array>}}``
         """
@@ -345,14 +382,20 @@ class PmdarimaAnalyzer:
 
         :param group_diff_data: Differenced payload consisting of a dictionary of
                                 ``{<group_key>: {'diff': <differenced data>,
-                                                [optional]'series_start': float}}``
+                                [optional]'series_start': float}}``
         :param lag: The lag to use to perform the differencing inversion.
+
+                    Default: ``1``
         :param differences: The order of differencing to be used during the inversion.
+
+                            Default: ``1``
         :param recenter: If ``True`` and ``'series_start'`` exists in ``group_diff_data`` dict,
                          will restore the original series range for each group based on the series
                          start value calculated through the ``generate_diff()`` method.
                          If the ``group_diff_data`` does not contain the starting values, the data
                          will not be re-centered.
+
+                         Default: ``False``
         :return: Dictionary of ``{<group_key>: <series_inverted_data>}``
         """
         warn_check = False

@@ -52,19 +52,21 @@ class GroupedPmdarima(GroupedForecaster):
 
         :param model_template: The type of model to build for each of the groups identified.
                                Supported templates:
-                               ``pmdarima.arima.arima.ARIMA`` - A wrapper around
+
+                               * ``pmdarima.arima.arima.ARIMA`` - A wrapper around
                                ``statsmodels.api.SARIMAX``.
                                See: https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.\
                                arima.ARIMA.html#pmdarima.arima.ARIMA
-                               ``pmdarima.arima.auto.AutoARIMA`` - An auto-tunable order and
+                               * ``pmdarima.arima.auto.AutoARIMA`` - An auto-tunable order and
                                seasonal order SARIMAX implementation.
                                See: https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.\
                                arima.AutoARIMA.html
-                               ``pmdarima.pipeline.Pipeline`` - An sklearn-like pipeline
+                               * ``pmdarima.pipeline.Pipeline`` - An sklearn-like pipeline
                                orchestrator for building preprocessing and model components for
                                ``pmdarima``.
                                See: https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.\
                                pipeline.Pipeline.html#pmdarima.pipeline.Pipeline
+
                                For examples showing the usage of each of these template paradigms,
                                see the examples section of this package.
 
@@ -186,6 +188,7 @@ class GroupedPmdarima(GroupedForecaster):
                    ordering of the series, an endogenous regressor column that specifies the
                    series data for training (e.g. ``y_col``), and column(s) that define the
                    grouping of the series data.
+
                    An example normalized data set:
 
                    =========== ===== ======== ============ ======
@@ -213,22 +216,30 @@ class GroupedPmdarima(GroupedForecaster):
         :param exog_cols: An optional collection of column names within the submitted data to class
                           methods that contain exogenous regressor elements to use as part of model
                           fitting and predicting.
+
+                          Default: ``None``
         :param ndiffs: optional overrides to the ``d`` ``ARIMA`` differencing term for stationarity
                        enforcement.
                        The structure of this argument is a dictionary in the form of:
                        ``{<group_key>: <d_term>}``. To calculate, use
                        ``diviner.PmdarimaAnalyzer.calculate_ndiffs()``
+
+                       Default: ``None``
         :param nsdiffs: optional overrides to the ``D`` SARIMAX seasonal differencing term for
                         seasonal stationarity enforcement.
                         The structure of this argument is a dictionary in the form of:
-                       ``{<group_key>: <D_term>}``. To calculate, use
-                       ``diviner.PmdarimaAnalyzer.calculate_nsdiffs()``
-        :param silence_warnings: If True, removes ``SARIMAX`` and underlying optimizer warning
+                        ``{<group_key>: <D_term>}``. To calculate, use
+                        :py:meth:``diviner.PmdarimaAnalyzer.calculate_nsdiffs``
+
+                        Default: ``None``
+        :param silence_warnings: If ``True``, removes ``SARIMAX`` and underlying optimizer warning
                                  message from stdout printing. With a sufficiently large nubmer of
                                  groups to process, the volume of these messages to stdout may
                                  become very large.
+
+                                 Default: ``False``
         :param fit_kwargs: ``fit_kwargs`` for ``pmdarima``'s ``ARIMA``, ``AutoARIMA``, or
-                           ``Pipeline`` stages overrides.
+                           ``Pipeline`` stage overrides.
                            For more information, see the ``pmdarima`` docs:
                            https://alkaline-ml.com/pmdarima/index.html
         :return: object instance of ``GroupedPmdarima`` with the persisted fit model attached.
@@ -353,27 +364,34 @@ class GroupedPmdarima(GroupedForecaster):
                           start its prediction on 7/11/2021 and generate daily predicted values
                           up to and including 7/17/2021.
         :param predict_col: The name to be applied to the column containing predicted data.
+
                             Default: ``'yhat'``
         :param alpha: Optional value for setting the confidence intervals for error estimates.
                       Note: this is only utilized if ``return_conf_int`` is set to ``True``.
+
                       Default: ``0.05`` (representing a 95% CI)
         :param return_conf_int: Boolean flag for whether to calculate confidence interval error
                                 estimates for predicted values. The intervals of ``yhat_upper`` and
                                 ``yhat_lower`` are based on the ``alpha`` parameter.
+
                                 Default: ``False``
         :param inverse_transform: Optional argument used only for ``Pipeline`` models that include
                                   either a ``BoxCoxEndogTransformer`` or a ``LogEndogTransformer``.
+
                                   Default: ``True``
         :param exog: Exogenous regressor components as a 2-D array.
                      Note: if the model is trained with exogenous regressor components, this
                      argument is required.
+
+                     Default: ``None``
         :param predict_kwargs: Extra ``kwarg`` arguments for any of the transform stages of a
                                ``Pipeline`` or for additional ``predict`` ``kwargs`` to the model
                                instance. ``Pipeline`` ``kwargs`` are specified in the manner of
-                               ``sklearn`` ``Pipeline``s (i.e., <stage_name>__<arg name>=<value>.
-                               e.g., to change the values of a fourier transformer at prediction
-                               time, the override would be: ``{'fourier__n_periods': 45})``
-        :return: A consolidate (unioned) single DataFrame of predictions per group.
+                               ``sklearn`` ``Pipeline`` format (i.e.,
+                               ``<stage_name>__<arg name>=<value>``. e.g., to change the values of
+                               a fourier transformer at prediction time, the override would be:
+                               ``{'fourier__n_periods': 45})``
+        :return: A consolidated (unioned) single DataFrame of predictions per group.
         """
         self._fit_check()
         self._predict_col = predict_col
@@ -446,8 +464,10 @@ class GroupedPmdarima(GroupedForecaster):
                                increase execution time).
         :param error_score: Default value to assign to a score calculation if an error occurs
                             in a given window iteration.
+
                             Default: ``np.nan`` (a silent ignore of the failure)
         :param verbosity: print verbosity level for ``pmdarima``'s cross validation stages.
+
                           Default: ``0`` (no printing to stdout)
         :return: ``Pandas DataFrame`` containing the group information and calculated cross
                  validation metrics for each group.

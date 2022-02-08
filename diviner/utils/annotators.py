@@ -12,4 +12,3 @@ def experimental(func):
     func.__doc__ = notice + func.__doc__
 
     return func
-

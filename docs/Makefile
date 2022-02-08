@@ -14,7 +14,17 @@ help:
 
 .PHONY: help Makefile
 
+# Check all external links are returning valid urls
+LINKCHECKDIR  = build/linkcheck
+
+.PHONY: checklinks
+	checklinks:
+	$(SPHINXBUILD) -b linkcheck $(ALLSPHINXOPTS) $(LINKCHECKDIR)
+	@echo
+	@echo "Check finished. Report is in $(LINKCHECKDIR)."
+
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+

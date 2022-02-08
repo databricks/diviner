@@ -29,9 +29,9 @@ def data():
 
 def test_pmdarima_default_arima_fit_attribute_extraction(data):
 
-    arima_model = GroupedPmdarima(
-        model_template=AutoARIMA(out_of_sample_size=30)
-    ).fit(data.df, data.key_columns, "y", "ds")
+    arima_model = GroupedPmdarima(model_template=AutoARIMA(out_of_sample_size=30)).fit(
+        data.df, data.key_columns, "y", "ds"
+    )
 
     for group, model in arima_model.model.items():
         pipeline = arima_model._extract_individual_model(group)
@@ -108,9 +108,7 @@ def test_pmdarima_utils_nsdiffs_calculation(data):
 
     nsdiffs = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
-    ).calculate_nsdiffs(
-        m=7, test="ocsb", max_D=7
-    )
+    ).calculate_nsdiffs(m=7, test="ocsb", max_D=7)
     assert len(nsdiffs) == SERIES_TEST_COUNT
     for k, v in nsdiffs.items():
         assert isinstance(k, tuple)
@@ -226,7 +224,9 @@ def test_pmdarima_reconstruct_series_from_diff_inv(data):
 
     group_dfs = analyzer._group_df
 
-    inverted = analyzer.generate_diff_inversion(diff, lag=2, differences=1, recenter=True)
+    inverted = analyzer.generate_diff_inversion(
+        diff, lag=2, differences=1, recenter=True
+    )
 
     for group, data in group_dfs:
 
