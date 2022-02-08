@@ -17,9 +17,9 @@ This example shows using a manually-configured (order values provided for a non-
 model that is applied to each group.
 
 Using this approach (a static order configuration) can be useful for homogenous collections of series. If each member of
-the grouped collection of series shares a common characteristics in the residuals (i.e., the differencing terms for both
-an autocorrelation and partial autocorrelation analysis shows similar relationships for all groups, this approach
-will be faster (and therefore, cheaper) than any other means.
+the grouped collection of series shares a common characteristic in the residuals (i.e., the differencing terms for both
+an auto-correlation and partial auto-correlation analysis shows similar relationships for all groups), this approach
+will be faster and less expensive to fit a model than any other means.
 
 .. literalinclude:: /../examples/grouped_pmdarima/arima_example.py
     :caption: GroupedPmdarima manually configured ARIMA model

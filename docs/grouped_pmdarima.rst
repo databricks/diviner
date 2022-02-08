@@ -3,7 +3,7 @@
 Grouped pmdarima
 ================
 
-The Grouped ``pmdarima`` model is a multi-series orchestration framework for building multiple individual models
+The Grouped ``pmdarima`` API is a multi-series orchestration framework for building multiple individual models
 of related, but isolated series data. For example, a project that required the forecasting of inventory demand at
 regional warehouses around the world would historically require individual orchestration of data acquisition, hyperparameter
 definitions, model training, metric validation, serialization, and registration of tens of thousands of individual
@@ -32,17 +32,18 @@ saving and loading of trained models.
 Base Estimators and API interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The usage of the :py:class:`GroupedPmdarima <diviner.GroupedPmdarima>` API is slightly different from the other grouped forecasting library wrappers within
-:py:mod:`Diviner <diviner>`. This is due to the ability of ``pmdarima`` to support multiple modes of configuration.
+The usage of the :py:class:`GroupedPmdarima <diviner.GroupedPmdarima>` API is slightly different from the other grouped
+forecasting library wrappers within :py:mod:`Diviner <diviner>`. This is due to the ability of ``pmdarima`` to support
+multiple modes of configuration.
 
 These modes that are available to construct a model are:
 
-* Passing an ``ARIMA`` model object (wrapper around `statsmodels ARIMA <https://www.statsmodels.org/devel/generated/statsmodels.tsa.arima.model.ARIMA.html>`_)
-* Using the native ``pmdarima`` ``AutoARIMA`` `constructor <https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.arima.AutoARIMA.html#pmdarima.arima.AutoARIMA>`_
-* Constructing a ``pmdarima`` `Pipeline <https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.pipeline.Pipeline.html#pmdarima.pipeline.Pipeline>`_
+* Passing an ``ARIMA`` model template (wrapper around `statsmodels ARIMA <https://www.statsmodels.org/devel/generated/statsmodels.tsa.arima.model.ARIMA.html>`_)
+* Using the native ``pmdarima`` ``AutoARIMA`` model `template <https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.arima.AutoARIMA.html#pmdarima.arima.AutoARIMA>`_
+* Constructing a ``pmdarima`` `Pipeline template <https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.pipeline.Pipeline.html#pmdarima.pipeline.Pipeline>`_
 
-Due to the multiple modes of operation available, the :py:class:`GroupedPmdarima <diviner.GroupedPmdarima>` implementation
-requires the submission of one of these 3 modes of operation for setting the base configured model class for each group.
+The :py:class:`GroupedPmdarima <diviner.GroupedPmdarima>` implementation requires the submission of one of these 3
+model templates to set the base configured model architecture for each group.
 
 For example:
 
@@ -140,8 +141,8 @@ Example:
 Predict
 ^^^^^^^
 
-The :py:meth:`predict <diviner.GroupedPmdarima.predict>` method provides the means for generating forecast data for each
-grouped series that was used in training the meta :py:class:`diviner.GroupedPmdarima` model.
+The :py:meth:`predict <diviner.GroupedPmdarima.predict>` method generates forecast data for each grouped series within
+the meta :py:class:`diviner.GroupedPmdarima` model.
 
 Example:
 
@@ -161,11 +162,13 @@ Example:
 The arguments for the :py:meth:`predict <diviner.GroupedPmdarima.predict>` method are:
 
 n_periods
-    The number of future periods to generate from the end of each group's series. The predicted series beings from a
-    single period frequency in the future from the end of the training data's series ordering.
+    The number of future periods to generate from the end of each group's series. The first value of the prediction
+    forecast series will begin at one periodicity value after the end of the training series.
+    For example, if the training series was of daily data from 2019-10-01 to 2021-10-02, the start of the prediction
+    series output would be 2021-10-03 and continue for ``n_periods`` days from that point.
 
 predict_col
-    *[Optional]* The name to be generated that contains the column of forecasted data. Default: ``"yhat"``
+    *[Optional]* The name to use for the generated column containing forecasted data. Default: ``"yhat"``
 
 alpha
     *[Optional]* Confidence interval significance value for error estimates. Default: ``0.05``.
@@ -182,6 +185,9 @@ inverse_transform
     *[Optional]* Used exclusively for ``Pipeline`` based models that include an endogeneous transformer such as
     ``BoxCoxEndogTransformer`` or ``LogEndogTransformer``. Default: ``True`` (although it only applies *if* the
     ``model_template`` type passed in is a ``Pipeline`` that contains a transformer).
+    An inversion of the endogeneous regression term can be helpful for distributions that are highly non-normal.
+    For further reading on what the purpose of these functions are, why they are used, and how they might be applicable
+    to a given time series, see this `link <https://en.wikipedia.org/wiki/Data_transformation_(statistics)>`_.
 
 exog
     *[Optional]* If the original model was trained with an exogeneous regressor elements, the prediction will require these
@@ -196,7 +202,7 @@ predict_kwargs
 
 Save
 ^^^^
-Provides a means to save a :py:class:`GroupedPmdarima <diviner.GroupedPmdarima>` instance that has been :py:meth:`fit <diviner.GroupedPmdarima.fit>`.
+Saves a :py:class:`GroupedPmdarima <diviner.GroupedPmdarima>` instance that has been :py:meth:`fit <diviner.GroupedPmdarima.fit>`.
 The serialization of the model instance uses a base64 encoding of the pickle serialization of each model instance within
 the grouped structure.
 
@@ -219,7 +225,7 @@ Example:
 
 Load
 ^^^^
-Provides for loading of a :py:class:`GroupedPmdarima <diviner.GroupedPmdarima>` serialized model from a storage location.
+Loads a :py:class:`GroupedPmdarima <diviner.GroupedPmdarima>` serialized model from a storage location.
 
 Example:
 
@@ -277,7 +283,7 @@ The metrics that are returned from fitting are:
 
 .. note::
     Out of bag error metric (oob) is only calculated if the underlying ``ARIMA`` model has a value set for the argument
-    ``out_of_sample_size``.
+    ``out_of_sample_size``. See `link here <https://en.wikipedia.org/wiki/Out-of-bag_error>`_ for more information.
 
 Example:
 
@@ -299,9 +305,8 @@ Cross Validation Backtesting
 Cross validation utilizing `backtesting <https://en.wikipedia.org/wiki/Backtesting>`_ is the primary means of evaluating whether a given model will perform robustly in
 generating forecasts based on time period horizon events throughout the historical series.
 
-The implementation in ``Diviner`` for :py:class:`GroupedPmdarima <diviner.GroupedPmdarima>` is similar to how the base
-estimator is supplied at class instantiation. In order to use the cross validation functionality in the method
-:py:meth:`diviner.GroupedPmdarima.cross_validate` one of two windowing split objects must be passed into the method signature:
+In order to use the cross validation functionality in the method :py:meth:`diviner.GroupedPmdarima.cross_validate`,
+one of two windowing split objects must be passed into the method signature:
 
 * `RollingForecastCV <https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.model_selection.RollingForecastCV.html#pmdarima.model_selection.RollingForecastCV>`_
 * `SlidingWindowForecastCV <https://alkaline-ml.com/pmdarima/modules/generated/pmdarima.model_selection.SlidingWindowForecastCV.html#pmdarima.model_selection.SlidingWindowForecastCV>`_
@@ -310,8 +315,8 @@ Arguments to the :py:meth:`diviner.GroupedPmdarima.cross_validate` method:
 
 df
     The original source ``DataFrame`` that was used during :py:meth:`diviner.GroupedPmdarima.fit` that contains
-    the endogenous series data, the columns that define the constructed groups (missing group data will not be scored and
-    groups that are not present in the model object will raise an Exception).
+    the endogenous series data. This ``DataFrame`` must contain the columns that define the constructed groups
+    (i.e., missing group data will not be scored and groups that are not present in the model object will raise an Exception).
 
 metrics
     A collection of metric names to be used for evaluation. Submitted metrics must be one or more of:
@@ -414,7 +419,7 @@ The :py:meth:`diviner.PmdarimaAnalyzer.decompose_groups` method will decompose e
 The output of this method is a union of each group's decomposed trends in a single ``DataFrame`` that retains the group
 key information in columns along with the extracted components from the series data.
 
-This method is mainly used for validation of a new project and does not have much applications for use after validation.
+This method is mainly used for validation of a new project.
 
 Example:
 
@@ -520,8 +525,8 @@ max_D
 Calculate Constancy
 ^^^^^^^^^^^^^^^^^^^
 
-The constancy check is a data set utility validation tool that will perform a validation of all grouped series data,
-validating whether a series is incapable of being modeled.
+The constancy check is a data set utility validation tool that operates on each grouped series,
+determining whether or not it can be modeled.
 
 The output of this validation check method :py:meth:`diviner.PmdarimaAnalyzer.calculate_is_constant` is a dictionary of
 ``{<group_key>: <Boolean constancy check>}``. Any group with a ``True`` result **is ineligible for modeling** as this
@@ -540,9 +545,9 @@ Calculate Auto Correlation Function
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :py:meth:`diviner.PmdarimaAnalyzer.calculate_acf` method is used for calculating the auto-correlation function for
-each series group. This functionality can be used to generate informed decision about how to restrict ordering terms
-optimization restrictions for ``AutoARIMA`` base estimators or to provide static configured values for an ``ARIMA``
-implementation.
+each series group. The auto-correlation function values can be used (in conjunction with the result of partial
+auto-correlation function results) to select restrictive search values for the ordering
+terms for ``AutoARIMA`` or to manually set the ordering terms (``(p, d, q)``) for ``ARIMA``.
 
 .. note::
     The general rule to determine whether to use an AR, MA, or ARMA configuration for ``ARIMA`` or ``AutoARIMA`` is
@@ -576,13 +581,14 @@ qstat
 
 fft
     Whether to perform a fast fourier transformation of the series to calculate the auto-correlation function. For large
-    time series, it is highly recommended to set this to ``True``.
+    time series, it is highly recommended to set this to ``True``. Allowable values: ``True``, ``False``, or ``None``.
 
     Default: ``None``
 
 alpha
-    If specified, calculates and returns confidence intervals at this certainty level for the auto-correlation function
-    values.
+    If specified as a float, calculates and returns confidence intervals at this certainty level for the auto-correlation function
+    values. For example, if alpha=0.1, 90% confidence intervals are calculated and returned wherein the standard deviation is computed
+    according to `Bartlett's formula <https://en.wikipedia.org/wiki/Bartlett%27s_test>`_.
 
     Default: ``None``
 
@@ -623,8 +629,9 @@ method
     Default: ``'ywadjusted'``
 
 alpha
-    If specified, calculates and returns the confidence intervals at the specified certainty level for the partial
-    auto-correlation values.
+    If specified as a float, calculates and returns confidence intervals at this certainty level for the auto-correlation function
+    values. For example, if alpha=0.1, 90% confidence intervals are calculated and returned wherein the standard deviation is computed
+    according to `Bartlett's formula <https://en.wikipedia.org/wiki/Bartlett%27s_test>`_.
 
     Default: ``None``
 
