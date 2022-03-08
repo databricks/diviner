@@ -2,8 +2,7 @@ import inspect
 import os
 import warnings
 from copy import deepcopy
-from typing import List, Dict
-
+from typing import Tuple, Union, List, Set, Dict
 from pmdarima import ARIMA, AutoARIMA
 from pmdarima.pipeline import Pipeline
 from pmdarima.warnings import ModelFitWarning
@@ -24,12 +23,13 @@ from diviner.utils.common import (
     _get_last_datetime_per_group,
     _get_datetime_freq_per_group,
 )
-from diviner.analysis.pmdarima_analyzer import (
+from diviner.utils.pmdarima_utils import (
+    _extract_arima_model,
     _get_arima_params,
     _get_arima_training_metrics,
-    _extract_arima_model,
     _generate_prediction_config,
     _generate_prediction_datetime_series,
+    _generate_group_subset_prediction_config,
 )
 from diviner.data.pandas_group_generator import PandasGroupGenerator
 from diviner.data.utils.dataframe_utils import apply_datetime_index_to_groups
@@ -321,7 +321,7 @@ class GroupedPmdarima(GroupedForecaster):
 
         return prediction_df
 
-    def _predict_groups(
+    def _run_predictions(
         self, df, n_periods_col="n_periods", exog=None, **predict_kwargs
     ):
 
@@ -402,7 +402,88 @@ class GroupedPmdarima(GroupedForecaster):
             return_conf_int,
             inverse_transform,
         )
-        return self._predict_groups(prediction_config, exog=exog, **predict_kwargs)
+        return self._run_predictions(prediction_config, exog=exog, **predict_kwargs)
+
+    def predict_groups(
+        self,
+        groups: Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]], np.ndarray],
+        n_periods: int,
+        predict_col: str = "yhat",
+        alpha: float = 0.05,
+        return_conf_int: bool = False,
+        inverse_transform: bool = False,
+        exog=None,
+        on_error: str = "raise",
+        **predict_kwargs,
+    ):
+        """
+        This is a prediction method that allows for generating a subset of forecasts based on the
+        collection of keys. By specifying individual groups in the ``groups`` argument, a limited
+        scope forecast can be performed without incurring the runtime costs associated with
+        predicting all groups.
+
+        :param groups: ``Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]]]`` the collection of
+                       group (s) to generate forecast predictions. The group definitions must be
+                       the values within the ``group_key_columns`` that were used during the
+                       ``fit`` of the model in order to return valid forecasts.
+
+                       .. Note:: The positional ordering of the values are important and must match
+                         the order of ``group_key_columns`` for the ``fit`` argument to provide
+                         correct prediction forecasts.
+
+        :param n_periods: The number of row events to forecast
+        :param predict_col: The name of the column in the output ``DataFrame`` that contains the
+                            forecasted series data.
+                            Default: ``"yhat"``
+        :param alpha: Optional value for setting the confidence intervals for error estimates.
+                      Note: this is only utilized if ``return_conf_int`` is set to ``True``.
+
+                      Default: ``0.05`` (representing a 95% CI)
+        :param return_conf_int: Boolean flag for whether to calculate confidence interval error
+                                estimates for predicted values. The intervals of ``yhat_upper`` and
+                                ``yhat_lower`` are based on the ``alpha`` parameter.
+
+                                Default: ``False``
+        :param inverse_transform: Optional argument used only for ``Pipeline`` models that include
+                                  either a ``BoxCoxEndogTransformer`` or a ``LogEndogTransformer``.
+
+                                  Default: ``True``
+        :param exog: Exogenous regressor components as a 2-D array.
+                     Note: if the model is trained with exogenous regressor components, this
+                     argument is required.
+
+                     Default: ``None``
+        :param predict_kwargs: Extra ``kwarg`` arguments for any of the transform stages of a
+                               ``Pipeline`` or for additional ``predict`` ``kwargs`` to the model
+                               instance. ``Pipeline`` ``kwargs`` are specified in the manner of
+                               ``sklearn`` ``Pipeline`` format (i.e.,
+                               ``<stage_name>__<arg name>=<value>``. e.g., to change the values of
+                               a fourier transformer at prediction time, the override would be:
+                               ``{'fourier__n_periods': 45})``
+        :param on_error: Alert level setting for handling mismatched group keys.
+                         Default: ``"raise"``
+                         The valid modes are:
+
+                         * "ignore" - no logging or exception raising will occur if a submitted
+                           group key in the ``groups`` argument is not present in the model object.
+
+                           .. Note:: This is a silent failure mode and will not present any
+                               indication of a failure to generate forecast predictions.
+
+                         * "warn" - any keys that are not present in the fit model will be recorded
+                           as logged warnings.
+                         * "raise" - any keys that are not present in the fit model will cause
+                           a ``DivinerException`` to be raised.
+        :return: A consolidated (unioned) single DataFrame of forecasts for all groups specified
+                 in the ``groups`` argument.
+        """
+
+        self._fit_check()
+        self._predict_col = predict_col
+        prediction_config = _generate_group_subset_prediction_config(
+            self, groups, n_periods, alpha, return_conf_int, inverse_transform, on_error
+        )
+        return self._run_predictions(prediction_config, exog=exog, **predict_kwargs)
 
     def get_metrics(self):
         """

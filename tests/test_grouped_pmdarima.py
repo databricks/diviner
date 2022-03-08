@@ -5,10 +5,8 @@ from pmdarima.arima.arima import ARIMA
 from pmdarima.pipeline import Pipeline
 from pmdarima.preprocessing import FourierFeaturizer
 from diviner import GroupedPmdarima, PmdarimaAnalyzer
-from diviner.analysis.pmdarima_analyzer import (
-    _PMDARIMA_MODEL_METRICS,
-    _COMPOUND_KEYS,
-)
+from diviner.exceptions import DivinerException
+from diviner.utils.pmdarima_utils import _COMPOUND_KEYS, _PMDARIMA_MODEL_METRICS
 
 PMDARIMA_MODEL_PARAMS = {
     "order",
@@ -197,3 +195,53 @@ def test_pmdarima_stationarity_optimized_overrides(data, pipeline_override_d):
         assert (
             row["D"] == 0
         )  # this isn't a seasonal model so the override shouldn't populate for 'D'
+
+
+def test_pmdarima_group_subset_predict(data, basic_pmdarima):
+
+    forecast_rows = 30
+
+    train_df = data.df
+
+    key_entries = []
+    for k, v in train_df[["key1", "key0"]].iloc[[0]].to_dict().items():
+        key_entries.append(list(v.values())[0])
+    groups = tuple(key_entries)
+
+    group_prediction = basic_pmdarima.predict_groups(groups, forecast_rows)
+    assert len(group_prediction) == forecast_rows
+    _key1 = group_prediction["key1"].unique()
+    assert len(_key1) == 1
+    assert _key1[0] == groups[0]
+    _key0 = group_prediction["key0"].unique()
+    assert len(_key0) == 1
+    assert _key0[0] == groups[1]
+
+
+def test_pmdarima_group_subset_predict_raises_and_warns(data, basic_pipeline):
+
+    forecast_rows = 60
+
+    train_df = data.df
+
+    key_entries = []
+    for k, v in train_df[["key1", "key0"]].iloc[[0]].to_dict().items():
+        key_entries.append(list(v.values())[0])
+    groups = [(key_entries[0], key_entries[1]), ("bogus", "entry")]
+
+    with pytest.raises(
+        DivinerException, match="Cannot perform predictions due to submitted"
+    ):
+        basic_pipeline.predict_groups(groups, forecast_rows, "D")
+
+    with pytest.warns(
+        UserWarning, match="Specified groups are unable to be predicted due to "
+    ):
+        basic_pipeline.predict_groups(groups, forecast_rows, "D", on_error="warn")
+
+    with pytest.raises(
+        DivinerException, match="Groups specified for subset forecasting are not"
+    ):
+        basic_pipeline.predict_groups(
+            ("invalid", "invalid"), forecast_rows, "D", on_error="ignore"
+        )

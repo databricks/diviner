@@ -76,10 +76,10 @@ horizon
     The number of events to forecast (supplied as a positive integer)
 frequency
     The periodicity between each forecast event. Note that this value does not have to match the periodicity of the
-    training data (i.e., training data can be in days and predictions can be in months, minutes, hours, or years)
+    training data (i.e., training data can be in days and predictions can be in months, minutes, hours, or years).
 
-The frequency abbreviations that are allowed can be found
-`here. <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_
+    The frequency abbreviations that are allowed can be found
+    `here. <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_
 
 .. note:: The generation of error estimates (`yhat_lower` and `yhat_upper`) in the output of a forecast are controlled
     through the use of the ``Prophet`` argument ``uncertainty_samples`` during class instantiation, prior to :ref:`fit`
@@ -140,6 +140,68 @@ Usage of this method with the above specified df would generate 4 individual pre
 
 .. note:: The :ref:`forecast` method is more appropriate for most use cases as it will continue immediately after the
     training period of data terminates.
+
+Predict Groups
+^^^^^^^^^^^^^^
+
+The :py:meth:`predict_groups <diviner.GroupedProphet.predict_groups>` method generates forecast data for a subset of
+groups that a :py:class:`diviner.GroupedProphet` model was trained upon.
+
+Example:
+
+.. code-block:: python
+
+    from diviner import GroupedProphet
+
+    model = GroupedProphet().fit(df, ["country", "region"])
+
+    subset_forecasts = model.predict_groups(groups=[("US", "NY"), ("FR", "Paris"), ("UA", "Kyiv")],
+                                            horizon=90,
+                                            frequency="D",
+                                            on_error="warn"
+                                            )
+
+The arguments for the :py:meth:`predict_groups <diviner.GroupedProphet.predict_groups>` method are:
+
+groups
+    A collection of groups (or single group) to generate a forecast for. Structures available for input to this
+    argument are: ``Tuple[str]`` or ``numpy.ndarray[str]`` for a single group; ``List[Tuple[str]]``, ``Set[Tuple[str]]``,
+    or ``numpy.ndarray[numpy.ndarray[str]]`` for a collection of groups.
+
+    .. note::
+        Groups that are submitted for prediction that are not present in the trained model will, by default, cause an
+        Exception to be raised. This behavior can be changed to a warning or ignore status with the argument ``on_error``.
+
+horizon
+    The number of events to forecast (supplied as a positive integer)
+
+frequency
+    The periodicity between each forecast event. Note that this value does not have to match the periodicity of the
+    training data (i.e., training data can be in days and predictions can be in months, minutes, hours, or years).
+
+    The frequency abbreviations that are allowed can be found
+    `here. <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_
+
+predict_col
+    *[Optional]* The name to use for the generated column containing forecasted data. Default: ``"yhat"``
+
+on_error
+    *[Optional]* [Default -> ``"raise"``] Dictates the behavior for handling group keys that have been submitted in the
+    ``groups`` argument that do not match with a group identified and registered during training (``fit``). The modes
+    are:
+
+    - ``"raise"``
+        A :py:class:`DivinerException <diviner.exceptions.DivinerException>` is raised if any supplied
+        groups do not match to the fitted groups.
+    - ``"warn"``
+        A warning is emitted (printed) and logged for any groups that do not match to those that the model
+        was fit with.
+    - ``"ignore"``
+        Invalid groups will silently fail prediction.
+
+    .. note::
+        A :py:class:`DivinerException <diviner.exceptions.DivinerException>` will still be raised even in ``"ignore"``
+        mode if there are no valid fit groups to match the provided ``groups`` provided to this method.
 
 Save
 ^^^^

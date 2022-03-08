@@ -1,8 +1,16 @@
+import logging
+from inspect import signature
+from typing import Tuple, Union, List, Set
+
+from prophet.diagnostics import cross_validation, performance_metrics
+
 from diviner.config.grouped_prophet.prophet_config import _get_extract_params
 from diviner.config.grouped_prophet.utils import prophet_config_utils
-from prophet.diagnostics import cross_validation, performance_metrics
-import pandas as pd
-from inspect import signature
+from diviner.exceptions import DivinerException
+from diviner.utils.common import (
+    _restrict_model_collection_by_groups,
+    _filter_groups_for_forecasting,
+)
 
 
 def _generate_future_df(model, horizon, frequency):
@@ -24,7 +32,13 @@ def _generate_future_df(model, horizon, frequency):
     )
 
 
-def generate_future_dfs(grouped_model, horizon: int, frequency: str):
+def generate_future_dfs(
+    grouped_model,
+    horizon: int,
+    frequency: str,
+    groups: Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]]] = None,
+    on_error: str = "raise",
+):
     """
     Utility function for continuing from where the training dataframe left off and generating
     `horizon` number of `period_type` row entries per group that were in the training data set.
@@ -34,11 +48,25 @@ def generate_future_dfs(grouped_model, horizon: int, frequency: str):
     :param frequency: the datetime period type to generate in Pandas `date_range` offset
                         alias format
     see: https://pandas.pydata.org/docs/user_guide/timeseries.html#timeseries-offset-aliases
+    :param groups: ``Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]]]`` the collection of
+                   group(s) to generate forecast predictions. The group definitions must be
+                   the values within the ``group_key_columns`` that were used during the
+                   ``fit`` of the model in order to return valid forecasts.
+
+                   .. Note:: The positional ordering of the values are important and must match
+                     the order of ``group_key_columns`` for the ``fit`` argument to provide
+                     correct prediction forecasts.
+    :param on_error: Alert level setting for handling mismatched group keys if groups is set.
+                     Default: ``"raise"``
+                     Must be one of "ignore", "warn", or "raise"
     :return: A collection of tuples of master grouping key and future dataframes
     """
+
+    model_collection = _filter_groups_for_forecasting(grouped_model, groups, on_error)
+
     df_collection = {
         key: _generate_future_df(model, horizon, frequency)
-        for key, model in grouped_model.items()
+        for key, model in model_collection.items()
     }
 
     return list(df_collection.items())

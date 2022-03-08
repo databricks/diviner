@@ -200,6 +200,95 @@ predict_kwargs
     format (i.e., ``<stage_name>__<arg name>=<value>``. e.g., to change the values of a fourier transformer at prediction
     time, the override would be: ``{'fourier__n_periods': 45})``
 
+Predict Groups
+^^^^^^^^^^^^^^
+
+The :py:meth:`predict_groups <diviner.GroupedPmdarima.predict_groups>` method generates forecast data for a subset of
+groups that a :py:class:`diviner.GroupedPmdarima` model was trained upon.
+
+Example:
+
+.. code-block:: python
+
+    from pmdarima.arima.arima import ARIMA
+    from diviner import GroupedPmdarima
+
+    base_model = ARIMA(order=(2, 1, 2))
+
+    grouped_arima = GroupedPmdarima(model_template=base_model)
+
+    model = grouped_arima.fit(df, ["country", "region"], "sales", "date")
+
+    subset_forecasts = model.predict_groups(groups=[("US", "NY"), ("FR", "Paris"), ("UA", "Kyiv")], n_periods=90)
+
+The arguments for the :py:meth:`predict_groups <diviner.GroupedPmdarima.predict_groups>` method are:
+
+groups
+    A collection of groups (or single group) to generate a forecast for. Structures available for input to this
+    argument are: ``Tuple[str]`` or ``numpy.ndarray[str]`` for a single group; ``List[Tuple[str]]``, ``Set[Tuple[str]]``,
+    or ``numpy.ndarray[numpy.ndarray[str]]`` for a collection of groups.
+
+    .. note::
+        Groups that are submitted for prediction that are not present in the trained model will, by default, cause an
+        Exception to be raised. This behavior can be changed to a warning or ignore status with the argument ``on_error``.
+
+n_periods
+    The number of future periods to generate from the end of each group's series. The first value of the prediction
+    forecast series will begin at one periodicity value after the end of the training series.
+    For example, if the training series was of daily data from 2019-10-01 to 2021-10-02, the start of the prediction
+    series output would be 2021-10-03 and continue for ``n_periods`` days from that point.
+
+predict_col
+    *[Optional]* The name to use for the generated column containing forecasted data. Default: ``"yhat"``
+
+alpha
+    *[Optional]* Confidence interval significance value for error estimates. Default: ``0.05``.
+
+.. note::
+    ``alpha`` is only used if the boolean flag ``return_conf_int`` is set to ``True``.
+
+return_conf_int
+    *[Optional]* Boolean flag for whether or not to calculate confidence intervals for the predicted forecasts.
+    If ``True``, the columns ``"yhat_upper"`` and ``"yhat_lower"`` will be added to the output ``DataFrame``
+    for the upper and lower confidence intervals for the predictions.
+
+inverse_transform
+    *[Optional]* Used exclusively for ``Pipeline`` based models that include an endogeneous transformer such as
+    ``BoxCoxEndogTransformer`` or ``LogEndogTransformer``. Default: ``True`` (although it only applies *if* the
+    ``model_template`` type passed in is a ``Pipeline`` that contains a transformer).
+    An inversion of the endogeneous regression term can be helpful for distributions that are highly non-normal.
+    For further reading on what the purpose of these functions are, why they are used, and how they might be applicable
+    to a given time series, see this `link <https://en.wikipedia.org/wiki/Data_transformation_(statistics)>`_.
+
+exog
+    *[Optional]* If the original model was trained with an exogeneous regressor elements, the prediction will require these
+    2D arrays at prediction time. This argument is used to hold the 2D array of future exogeneous regressor values to be
+    used in generating the prediction for the regressor.
+
+on_error
+    *[Optional]* [Default -> ``"raise"``] Dictates the behavior for handling group keys that have been submitted in the
+    ``groups`` argument that do not match with a group identified and registered during training (``fit``). The modes
+    are:
+
+    - ``"raise"``
+        A :py:class:`DivinerException <diviner.exceptions.DivinerException>` is raised if any supplied
+        groups do not match to the fitted groups.
+    - ``"warn"``
+        A warning is emitted (printed) and logged for any groups that do not match to those that the model
+        was fit with.
+    - ``"ignore"``
+        Invalid groups will silently fail prediction.
+
+    .. note::
+        A :py:class:`DivinerException <diviner.exceptions.DivinerException>` will still be raised even in ``"ignore"``
+        mode if there are no valid fit groups to match the provided ``groups`` provided to this method.
+
+predict_kwargs
+    *[Optional]* Extra ``kwarg`` arguments for any of the transform stages of a ``Pipeline`` or for additional ``predict``
+    ``kwargs`` to the model instance. ``Pipeline`` ``kwargs`` are specified in the manner of ``sklearn`` ``Pipeline``
+    format (i.e., ``<stage_name>__<arg name>=<value>``. e.g., to change the values of a fourier transformer at prediction
+    time, the override would be: ``{'fourier__n_periods': 45})``
+
 Save
 ^^^^
 Saves a :py:class:`GroupedPmdarima <diviner.GroupedPmdarima>` instance that has been :py:meth:`fit <diviner.GroupedPmdarima.fit>`.

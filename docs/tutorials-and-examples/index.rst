@@ -9,6 +9,6 @@ The links below will direct you to tutorials and examples of how to use Diviner 
     :maxdepth: 1
 
     GroupedProphet Notebook <notebooks/grouped_prophet_example_jupyter>
-    GroupedProphet Script <grouped_prophet_script_link>
+    GroupedProphet Scripts <grouped_prophet_script_link>
     GroupedPmdarima Notebook <notebooks/grouped_pmdarima_example_jupyter>
     GroupedPmdarima Scripts <grouped_pmdarima_script_links>

@@ -62,6 +62,17 @@ transformation is applied to each series to force stationarity.
     :language: python
     :linenos:
 
+GroupedPmdarima Group Subset Prediction Example
+-----------------------------------------------
+
+This example shows a subset prediction of groups by using the `predict_groups <diviner.GroupedPmdarima.predict_groups>`
+method.
+
+.. literalinclude:: /../examples/grouped_pmdarima/group_subset_arima_example.py
+    :caption: GroupedPmdarima Subset Groups Prediction
+    :language: python
+    :linenos:
+
 GroupedPmdarima Series Analysis Example
 ---------------------------------------
 
@@ -84,5 +95,15 @@ can reduce the total number of iterative validation tests.
 
 .. literalinclude:: /../examples/grouped_pmdarima/pmdarima_analyze_differencing_terms_and_apply.py
     :caption: GroupedPmdarima manual differencing term extraction and application to AutoARIMA
+    :language: python
+    :linenos:
+
+Supplementary
+-------------
+
+.. note:: To run these examples for yourself with the data generator example, utlize the following code:
+
+.. literalinclude:: /../examples/example_data_generator.py
+    :caption: Synthetic Data Generator
     :language: python
     :linenos:

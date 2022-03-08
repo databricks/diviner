@@ -4,6 +4,9 @@ import json
 from ast import literal_eval
 from copy import deepcopy
 import warnings
+from typing import Tuple, Union, List, Set
+import numpy as np
+
 from prophet import Prophet
 from prophet.serialize import model_from_json, model_to_json
 
@@ -224,6 +227,58 @@ class GroupedProphet(GroupedForecaster):
             predictions.rename(columns={"yhat": predict_col}, inplace=True)
 
         return predictions
+
+    def predict_groups(
+        self,
+        groups: Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]], np.ndarray],
+        horizon: int,
+        frequency: str,
+        predict_col: str = "yhat",
+        on_error: str = "raise",
+    ):
+        """
+        This is a prediction method that allows for generating a subset of forecasts based on the
+        collection of keys.
+
+        :param groups: ``Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]]]`` the collection of
+                       group(s) to generate forecast predictions. The group definitions must be
+                       the values within the ``group_key_columns`` that were used during the
+                       ``fit`` of the model in order to return valid forecasts.
+
+                       .. Note:: The positional ordering of the values are important and must match
+                           the order of ``group_key_columns`` for the ``fit`` argument to provide
+                           correct prediction forecasts.
+
+        :param horizon: The number of row events to forecast
+        :param frequency: The frequency (periodicity) of Pandas date_range format
+                          (i.e., ``'D'``, ``'M'``, ``'Y'``)
+        :param predict_col: The name of the column in the output ``DataFrame`` that contains the
+                            forecasted series data.
+                            Default: ``"yhat"``
+        :param on_error: Alert level setting for handling mismatched group keys.
+                         Default: ``"raise"``
+                         The valid modes are:
+
+                         * "ignore" - no logging or exception raising will occur if a submitted
+                           group key in the ``groups`` argument is not present in the model object.
+
+                           .. Note:: This is a silent failure mode and will not present any
+                               indication of a failure to generate forecast predictions.
+
+                         * "warn" - any keys that are not present in the fit model will be recorded
+                           as logged warnings.
+                         * "raise" - any keys that are not present in the fit model will cause
+                           a ``DivinerException`` to be raised.
+        :return: A consolidated (unioned) single DataFrame of forecasts for all groups specified
+                 in the ``groups`` argument.
+        """
+
+        self._fit_check()
+        grouped_data = generate_future_dfs(
+            self.model, horizon, frequency, groups, on_error
+        )
+
+        return self._run_predictions(grouped_data)
 
     def cross_validate(
         self, horizon, period=None, initial=None, parallel=None, cutoffs=None

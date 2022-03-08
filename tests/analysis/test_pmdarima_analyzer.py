@@ -4,12 +4,12 @@ from tests import data_generator
 from pmdarima.arima.auto import AutoARIMA
 from diviner import GroupedPmdarima, PmdarimaAnalyzer
 from diviner.exceptions import DivinerException
-from diviner.analysis.pmdarima_analyzer import (
+from diviner.utils.pmdarima_utils import (
     _extract_arima_model,
     _get_arima_params,
     _get_arima_training_metrics,
-    _PMDARIMA_MODEL_METRICS,
     _construct_prediction_config,
+    _PMDARIMA_MODEL_METRICS,
 )
 
 SERIES_TEST_COUNT = 2

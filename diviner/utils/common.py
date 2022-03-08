@@ -1,6 +1,10 @@
-from typing import Tuple, Dict, List
+import logging
+import warnings
+from collections import namedtuple
+from typing import Tuple, Dict, List, Union, Set
 from diviner.exceptions import DivinerException
 import pandas as pd
+import numpy as np
 
 
 def _restructure_fit_payload(train_results: List[Dict[str, any]]) -> Dict[str, any]:
@@ -122,3 +126,73 @@ def _get_datetime_freq_per_group(dt_indexed_group_data):
         else:
             group_output[group] = pd.infer_freq(df.index)
     return group_output
+
+
+def _restrict_model_collection_by_groups(
+    grouped_model,
+    groups: Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]], np.ndarray],
+):
+
+    Output = namedtuple("Output", "groups failures")
+    key_lookup_failures = []
+    if groups is not None:
+        if isinstance(groups, np.ndarray):
+            if isinstance(groups[0], (np.ndarray, tuple)):
+                groups = [tuple(items) for items in groups.tolist()]
+            else:  # if the group keys are passed in a single array
+                groups = tuple(groups.tolist())
+        if isinstance(groups, tuple):
+            group_collection = {
+                group: model
+                for group, model in grouped_model.items()
+                if group == groups
+            }
+        else:
+            model_keys = set(grouped_model.keys())
+            for group in groups:
+                if group not in model_keys:
+                    key_lookup_failures.append(str(group))
+            group_collection = {
+                group: model
+                for group, model in grouped_model.items()
+                if group in groups
+            }
+    else:
+        group_collection = grouped_model
+    if len(group_collection) == 0:
+        raise DivinerException(
+            "Groups specified for subset forecasting are not present in the "
+            "fit model. Validate model grouping keys by accessing "
+            "<fit_model>.model.keys()"
+        )
+    return Output(group_collection, key_lookup_failures)
+
+
+def _filter_groups_for_forecasting(
+    grouped_model,
+    groups: Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]], np.ndarray],
+    on_error: str,
+):
+
+    if groups is None:
+        return grouped_model
+    else:
+        model_groups = _restrict_model_collection_by_groups(grouped_model, groups)
+
+        if len(model_groups.failures) > 0:
+
+            if on_error == "raise":
+                raise DivinerException(
+                    "Cannot perform predictions due to submitted group(s) "
+                    f"missing from fit model: {','.join(model_groups.failures)}"
+                )
+            elif on_error == "warn":
+                message = (
+                    "Specified groups are unable to be predicted due to group(s) missing"
+                    f"from fit model: {','.join(model_groups.failures)}"
+                )
+                warnings.warn(message, UserWarning)
+                logger = logging.getLogger()
+                logger.warning(message)
+
+        return model_groups.groups
