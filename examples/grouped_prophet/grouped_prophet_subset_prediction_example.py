@@ -26,7 +26,7 @@ if __name__ == "__main__":
     group_df = training_data.copy()
     group_df["groups"] = list(zip(*[group_df[c] for c in group_key_columns]))
     distinct_groups = group_df["groups"].unique()
-    groups_to_predict = distinct_groups[:3]
+    groups_to_predict = list(distinct_groups[:3])
 
     print("-" * 65)
     print(f"\nUnique groups that have been modeled: \n{distinct_groups}\n")

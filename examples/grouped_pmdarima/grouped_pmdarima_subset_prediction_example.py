@@ -28,10 +28,12 @@ if __name__ == "__main__":
     group_df = training_data.copy()
     group_df["groups"] = list(zip(*[group_df[c] for c in group_key_columns]))
     distinct_groups = group_df["groups"].unique()
-    groups_to_predict = distinct_groups[:3]
+    groups_to_predict = list(distinct_groups[:3])
 
+    print("-" * 65)
     print(f"Unique groups that have been modeled: {distinct_groups}")
     print(f"Subset of groups to generate predictions for: {groups_to_predict}")
+    print("-" * 65)
 
     forecasts = base_arima.predict_groups(
         groups=groups_to_predict,

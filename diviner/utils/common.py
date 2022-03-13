@@ -141,7 +141,7 @@ def _restrict_model_collection_by_groups(
             if group not in model_keys:
                 key_lookup_failures.append(str(group))
         group_collection = {
-            group: model for group, model in grouped_model.items() if group in groups
+            key: model for key, model in grouped_model.items() if key in groups
         }
     else:
         group_collection = grouped_model
