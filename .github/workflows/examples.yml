@@ -1,0 +1,71 @@
+name: Examples
+
+on:
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: "0 45 23 ? * SUN *"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == "refs/heads/main" && github.run_number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -exo pipefail {0}
+
+env:
+  DIVINER_HOME: /usr/share/miniconda
+
+jobs:
+  examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Increase available disk space
+        run: |
+          # Increase available disk space by removing unnecessary tool chains:
+          # https://github.com/actions/virtual-environments/issues/709#issuecomment-612569242
+          rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+
+      - name: Check diff
+        id: check-diff
+        run: |
+          if [ ! "$(git branch --show-current)" == "main" ]; then
+            git fetch origin main:main
+          fi
+
+          REGEXP="tests/examples\|examples"
+          CHANGED_FILES=$(git diff --name-only main..HEAD | grep "$REGEXP") || true;
+          EXAMPLES_CHANGED=$([[ ! -z "$CHANGED_FILES" ]] && echo "true" || echo "false")
+
+          echo -e "CHANGED_FILES:\nCHANGED_FILES"
+          echo "EXAMPLES_CHANGED: $EXAMPLES_CHANGED"
+          echo "::set-output name=examples_changed::$EXAMPLES_CHANGED"
+
+      - uses: ./.github/actions/setup-python
+        with:
+          python-version: "3.8"
+
+      - name: Install dependencies
+        if: ${{ github.event_name == 'schedule' || steps.check-diff.outputs.examples_changed == 'true' }}
+        env:
+          INSTALL_PMDARIMA_DEPS: true
+          INSTALL_PROPHET_DEPS: true
+        run: |
+          source ./dev/install-deps.sh
+
+      - name: Run example tests
+        if: ${{ github.event_name == 'schedule' || steps.check-diff.outputs.examples_changed == 'true' }}
+        run: |
+          pytest tests/examples --durations=30
+
+      - name: Remove conda environments
+        run: |
+          conda remove --all --yes --name test-environment
+          ./dev/remove-conda-envs.sh
+
+      - name: Show disk usage
+        run: |
+          df -h

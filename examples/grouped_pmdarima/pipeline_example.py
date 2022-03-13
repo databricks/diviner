@@ -3,7 +3,7 @@ from pmdarima.arima.auto import AutoARIMA
 from pmdarima.pipeline import Pipeline
 from pmdarima.preprocessing import BoxCoxEndogTransformer
 from pmdarima.model_selection import RollingForecastCV
-from examples.example_data_generator import generate_example_data
+from diviner.utils.example_utils.example_data_generator import generate_example_data
 from diviner import GroupedPmdarima
 
 

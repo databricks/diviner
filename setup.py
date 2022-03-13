@@ -13,7 +13,7 @@ REQUIREMENTS = ["numpy", "pandas", "prophet", "pmdarima"]
 setup(
     name="diviner",
     version=version,
-    packages=find_packages(exclude=["tests", "tests.*"]),
+    packages=find_packages(exclude=["tests", "tests.*", "examples"]),
     install_requires=REQUIREMENTS,
     zip_safe=False,
     author="Databricks",

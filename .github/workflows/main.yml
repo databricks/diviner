@@ -1,0 +1,104 @@
+name: Diviner tests
+
+on:
+  push:
+    branches:
+      - main
+      - branch-[0-9]+.[0-9]+
+  pull_request:
+    branches:
+      - main
+      - branch-[0-9]+.[0-9]+
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -exo pipefail {0}
+
+env:
+  CONDA_HOME: /usr/share/miniconda
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/setup-python
+        with:
+          python-version: "3.8"
+      - uses: ./.github/actions/cache-pip
+      - name: Install dependencies
+        run: |
+          source ./dev/install-deps.sh
+          pip install -r requirements/lint-requirements.txt
+      - name: Run lint checks
+        run: |
+          ./dev/lint.sh
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses actions/checkout@v2
+      - uses ./.github/actions/setup-python
+        with:
+          python-version: "3.8"
+      - uses: ./.github/actions/cache-pip
+      - name: Install Dependencies
+        run: |
+          source ./dev/install-deps.sh
+          pip install -r requirements/docs-requirements.txt
+      - name: Build docs
+        run: |
+          ./dev/build-docs.sh
+
+  pmdarima:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/setup-python
+        with:
+          python-version: "3.8"
+      - uses: ./.github/actions/cache-pip
+      - name: Install Dependencies
+        env:
+          INSTALL_PMDARIMA_DEPS: true
+        run: |
+          ./dev/install-deps.sh
+      - name: Run tests
+        run: |
+          ./dev/run-pmdarima-tests.sh
+
+  prophet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/setup-python
+        with:
+          python-version: "3.8"
+      - uses: ./.github/actions/cache-pip
+      - name: Install Dependencies
+        env:
+          INSTALL_PROPHET_DEPS: true
+        run: |
+          ./dev/install-deps.sh
+      - name: Run tests
+        run: |
+          ./dev/run-prophet-tests.sh
+
+  common:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/setup-python
+        with:
+          python-version: "3.8"
+      - uses: ./.github/actions/cache-pip
+      - name: Install Dependencies
+        run: |
+          ./dev/install-deps.sh
+      - name: Run tests
+        run: |
+          ./dev/run-common-tests.sh

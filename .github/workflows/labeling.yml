@@ -1,0 +1,30 @@
+name: Labeling
+
+on:
+  issues:
+    types:
+      - opened
+      - reopened
+      - edited
+      - unlabeled
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - edited
+      - review_requested
+      - ready_for_review
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -exo pipefail {0}
+
+jobs:
+  labeling:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: harupy/auto-labeling@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          label-pattern: '- \[(.*?)\] ?`(.+?)`'
