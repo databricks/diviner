@@ -2,7 +2,7 @@ import inspect
 import os
 import warnings
 from copy import deepcopy
-from typing import Tuple, Union, List, Set, Dict
+from typing import Tuple, List, Dict
 from pmdarima import ARIMA, AutoARIMA
 from pmdarima.pipeline import Pipeline
 from pmdarima.warnings import ModelFitWarning
@@ -406,7 +406,7 @@ class GroupedPmdarima(GroupedForecaster):
 
     def predict_groups(
         self,
-        groups: Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]], np.ndarray],
+        groups: List[Tuple[str]],
         n_periods: int,
         predict_col: str = "yhat",
         alpha: float = 0.05,
@@ -422,7 +422,7 @@ class GroupedPmdarima(GroupedForecaster):
         scope forecast can be performed without incurring the runtime costs associated with
         predicting all groups.
 
-        :param groups: ``Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]]]`` the collection of
+        :param groups: ``List[Tuple[str]]`` the collection of
                        group (s) to generate forecast predictions. The group definitions must be
                        the values within the ``group_key_columns`` that were used during the
                        ``fit`` of the model in order to return valid forecasts.

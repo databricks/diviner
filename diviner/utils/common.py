@@ -1,7 +1,7 @@
 import logging
 import warnings
 from collections import namedtuple
-from typing import Tuple, Dict, List, Union, Set
+from typing import Tuple, Dict, List
 from diviner.exceptions import DivinerException
 import pandas as pd
 import numpy as np
@@ -130,33 +130,19 @@ def _get_datetime_freq_per_group(dt_indexed_group_data):
 
 def _restrict_model_collection_by_groups(
     grouped_model,
-    groups: Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]], np.ndarray],
+    groups: List[Tuple[str]],
 ):
 
     Output = namedtuple("Output", "groups failures")
     key_lookup_failures = []
     if groups is not None:
-        if isinstance(groups, np.ndarray):
-            if isinstance(groups[0], (np.ndarray, tuple)):
-                groups = [tuple(items) for items in groups.tolist()]
-            else:  # if the group keys are passed in a single array
-                groups = tuple(groups.tolist())
-        if isinstance(groups, tuple):
-            group_collection = {
-                group: model
-                for group, model in grouped_model.items()
-                if group == groups
-            }
-        else:
-            model_keys = set(grouped_model.keys())
-            for group in groups:
-                if group not in model_keys:
-                    key_lookup_failures.append(str(group))
-            group_collection = {
-                group: model
-                for group, model in grouped_model.items()
-                if group in groups
-            }
+        model_keys = set(grouped_model.keys())
+        for group in groups:
+            if group not in model_keys:
+                key_lookup_failures.append(str(group))
+        group_collection = {
+            group: model for group, model in grouped_model.items() if group in groups
+        }
     else:
         group_collection = grouped_model
     if len(group_collection) == 0:
@@ -170,7 +156,7 @@ def _restrict_model_collection_by_groups(
 
 def _filter_groups_for_forecasting(
     grouped_model,
-    groups: Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]], np.ndarray],
+    groups: List[Tuple[str]],
     on_error: str,
 ):
 

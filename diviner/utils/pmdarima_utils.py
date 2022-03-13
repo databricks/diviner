@@ -1,5 +1,5 @@
 import warnings
-from typing import Union, Tuple, List, Set
+from typing import Tuple, List
 from copy import deepcopy
 
 import pandas as pd
@@ -114,7 +114,7 @@ def _generate_prediction_datetime_series(fit_max_datetime, fit_freq, periods):
 
 def _generate_group_subset_prediction_config(
     grouped_pmdarima_model,
-    groups: Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]]],
+    groups: List[Tuple[str]],
     n_periods: int,
     alpha: float = 0.05,
     return_conf_int: bool = False,

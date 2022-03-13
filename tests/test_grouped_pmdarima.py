@@ -206,16 +206,16 @@ def test_pmdarima_group_subset_predict(data, basic_pmdarima):
     key_entries = []
     for k, v in train_df[["key1", "key0"]].iloc[[0]].to_dict().items():
         key_entries.append(list(v.values())[0])
-    groups = tuple(key_entries)
+    groups = [tuple(key_entries)]
 
     group_prediction = basic_pmdarima.predict_groups(groups, forecast_rows)
     assert len(group_prediction) == forecast_rows
     _key1 = group_prediction["key1"].unique()
     assert len(_key1) == 1
-    assert _key1[0] == groups[0]
+    assert _key1[0] == groups[0][0]
     _key0 = group_prediction["key0"].unique()
     assert len(_key0) == 1
-    assert _key0[0] == groups[1]
+    assert _key0[0] == groups[0][1]
 
 
 def test_pmdarima_group_subset_predict_raises_and_warns(data, basic_pipeline):

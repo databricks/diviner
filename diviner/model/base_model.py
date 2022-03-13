@@ -4,7 +4,7 @@ grouped modeling application.
 """
 import abc
 from collections import defaultdict
-from typing import Tuple, Union, List, Set
+from typing import Tuple, List
 from diviner.exceptions import DivinerException
 
 GROUPED_MODEL_BASE_ATTRIBUTES = ["_group_key_columns", "_master_key"]
@@ -64,19 +64,19 @@ class GroupedForecaster(abc.ABC):
         """
 
     @abc.abstractmethod
-    def predict_groups(
-        self, groups: Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]]]
-    ):
+    def predict_groups(self, groups: List[Tuple[str]]):
         """
         Template for generating predictions for a subset of the groups that were involved in model
         fitting.
-        :param groups: ``Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]]]`` the collection of
-                       group(s) to generate forecast predictions. The group definitions must be
-                       the values within the ``group_key_columns`` that were used during the
-                       ``fit`` of the model in order to return valid forecasts.
+        :param groups: ``List[Tuple[str]]`` the collection of group(s) to generate forecast
+                       predictions. The group definitions must be the values within the
+                       ``group_key_columns`` that were used during the ``fit`` of the model in
+                       order to return valid forecasts.
+
                        .. Note:: The positional ordering of the values are important and must match
                          the order of ``group_key_columns`` for the ``fit`` argument to provide
                          correct prediction forecasts.
+
         :return: A consolidated DataFrame of the union of each group model's predictions per each
                  grouping key present in both the ``groups`` argument and the model's fit groups.
         """

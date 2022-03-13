@@ -224,9 +224,11 @@ Example:
 The arguments for the :py:meth:`predict_groups <diviner.GroupedPmdarima.predict_groups>` method are:
 
 groups
-    A collection of groups (or single group) to generate a forecast for. Structures available for input to this
-    argument are: ``Tuple[str]`` or ``numpy.ndarray[str]`` for a single group; ``List[Tuple[str]]``, ``Set[Tuple[str]]``,
-    or ``numpy.ndarray[numpy.ndarray[str]]`` for a collection of groups.
+    A collection of one or more groups for which to generate a forecast. The collection of groups must be submitted as a
+    ``List[Tuple[str]]`` to identify the order-specific group values to retrieve the correct model. For instance, if the
+    model was trained with the specified ``group_key_columns`` of ``["country", "city"]``, a valid ``groups`` entry
+    would be: ``[("US", "LosAngeles"), ("CA", "Toronto")]``. Changing the order within the tuples will not resolve
+    (e.g. ``[("NewYork", "US")]`` would not find the appropriate model).
 
     .. note::
         Groups that are submitted for prediction that are not present in the trained model will, by default, cause an

@@ -4,8 +4,7 @@ import json
 from ast import literal_eval
 from copy import deepcopy
 import warnings
-from typing import Tuple, Union, List, Set
-import numpy as np
+from typing import Tuple, List
 
 from prophet import Prophet
 from prophet.serialize import model_from_json, model_to_json
@@ -230,7 +229,7 @@ class GroupedProphet(GroupedForecaster):
 
     def predict_groups(
         self,
-        groups: Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]], np.ndarray],
+        groups: List[Tuple[str]],
         horizon: int,
         frequency: str,
         predict_col: str = "yhat",
@@ -240,7 +239,7 @@ class GroupedProphet(GroupedForecaster):
         This is a prediction method that allows for generating a subset of forecasts based on the
         collection of keys.
 
-        :param groups: ``Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]]]`` the collection of
+        :param groups: ``List[Tuple[str]]`` the collection of
                        group(s) to generate forecast predictions. The group definitions must be
                        the values within the ``group_key_columns`` that were used during the
                        ``fit`` of the model in order to return valid forecasts.

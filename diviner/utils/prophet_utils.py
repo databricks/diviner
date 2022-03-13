@@ -36,7 +36,7 @@ def generate_future_dfs(
     grouped_model,
     horizon: int,
     frequency: str,
-    groups: Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]]] = None,
+    groups: List[Tuple[str]] = None,
     on_error: str = "raise",
 ):
     """
@@ -48,7 +48,7 @@ def generate_future_dfs(
     :param frequency: the datetime period type to generate in Pandas `date_range` offset
                         alias format
     see: https://pandas.pydata.org/docs/user_guide/timeseries.html#timeseries-offset-aliases
-    :param groups: ``Union[Tuple[str], List[Tuple[str]], Set[Tuple[str]]]`` the collection of
+    :param groups: ``List[Tuple[str]]`` the collection of
                    group(s) to generate forecast predictions. The group definitions must be
                    the values within the ``group_key_columns`` that were used during the
                    ``fit`` of the model in order to return valid forecasts.

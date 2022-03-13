@@ -24,7 +24,7 @@ GroupedProphet Subset Group Prediction Example
 
 This script shows a simple example of training a series of Prophet models and generating a group subset prediction.
 
-.. literalinclude:: /../examples/grouped_prophet/group_subset_prophet_example.py
+.. literalinclude:: /../examples/grouped_prophet/grouped_prophet_subset_prediction_example.py
     :caption: GroupedProphet Subset Groups Script
     :language: python
     :linenos:
