@@ -52,12 +52,12 @@ jobs:
       - name: Test installation from tarball
         run: |
           pip install ${{ steps.build-dist.outputs.sdist-path }}
-          python -c "import mlflow; print(mlflow.__version__)"
+          python -c "import diviner; print(diviner.__version__)"
 
       - name: Test installation from wheel
         run: |
           pip install --force-reinstall ${{ steps.build-dist.outputs.wheel-path }}
-          python -c "import mlflow; print(mlflow.__version__)"
+          python -c "import diviner; print(diviner.__version__)"
 
       - name: Store wheel
         uses: actions/upload-artifact@v3
