@@ -46,7 +46,13 @@ jobs:
         with:
           python-version: "3.8"
       - uses: ./.github/actions/cache-pip
-      - uses: docker://pandoc/core:2.9
+      - uses: docker://pandoc/latex:2.9
+        with:
+          args: --output=output/result.pdf ${{ steps.files_list.outputs.files }}
+      - uses: actions/upload-artifact@main
+        with:
+          name: output
+          path: output
       - name: Install Dependencies
         env:
           INSTALL_PROPHET_DEPS: true
