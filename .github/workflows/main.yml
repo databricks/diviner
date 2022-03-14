@@ -64,6 +64,7 @@ jobs:
       - uses: ./.github/actions/cache-pip
       - name: Install Dependencies
         env:
+          INSTALL_PROPHET_DEPS: true
           INSTALL_PMDARIMA_DEPS: true
         run: |
           ./dev/install-deps.sh
@@ -82,6 +83,7 @@ jobs:
       - name: Install Dependencies
         env:
           INSTALL_PROPHET_DEPS: true
+          INSTALL_PMDARIMA_DEPS: true
         run: |
           ./dev/install-deps.sh
       - name: Run tests
@@ -97,6 +99,9 @@ jobs:
           python-version: "3.8"
       - uses: ./.github/actions/cache-pip
       - name: Install Dependencies
+        env:
+          INSTALL_PROPHET_DEPS: true
+          INSTALL_PMDARIMA_DEPS: true
         run: |
           ./dev/install-deps.sh
       - name: Run tests
