@@ -21,13 +21,15 @@ REQUIREMENTS = ["numpy", "pandas", "prophet", "pmdarima"]
 setup(
     name="diviner",
     version=get_version("diviner/__init__.py"),
-    packages=find_packages(exclude=["tests", "tests.*", "examples"]),
+    packages=find_packages(exclude=["tests", "tests.*"]),
     install_requires=REQUIREMENTS,
     zip_safe=False,
     author="Databricks",
     author_email="benjamin.wilson@databricks.com",
     url="http://databricks-diviner.readthedocs.io/",
     description="Diviner: A Grouped Forecasting API",
+    long_description=open("README.rst").read(),
+    long_description_content_type="text/x-rst",
     license="Apache2.0",
     classifiers=[
         "Intended Audience: Developers",

@@ -46,6 +46,7 @@ jobs:
         with:
           python-version: "3.8"
       - uses: ./.github/actions/cache-pip
+      - uses: docker://pandoc/core:2.9
       - name: Install Dependencies
         env:
           INSTALL_PROPHET_DEPS: true
