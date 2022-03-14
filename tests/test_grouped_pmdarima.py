@@ -24,7 +24,15 @@ PMDARIMA_MODEL_PARAMS = {
 SERIES_TEST_COUNT = 2
 PARAMS_COLS = [
     item for item in PMDARIMA_MODEL_PARAMS if item not in _COMPOUND_KEYS.keys()
-] + ["p", "d", "q", "P", "D", "Q", "s"]
+] + [
+    "p",
+    "d",
+    "q",
+    "P",
+    "D",
+    "Q",
+    "s",
+]
 
 
 @pytest.fixture(scope="module")
@@ -191,7 +199,7 @@ def test_pmdarima_stationarity_optimized_overrides(data, pipeline_override_d):
 
     params = pipeline_override_d.get_model_params()
 
-    for idx, row in params.iterrows():
+    for _, row in params.iterrows():
         group = (row["key1"], row["key0"])
         assert ndiffs.get(group) == row["d"]
         assert (

@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 
+DIVINER_HOME=$(pwd)
+export DIVINER_HOME
+
 err=0
 trap 'err=1' ERR
 
-echo -e "\n========== black ==========\n"
+echo -e "$(tput bold; tput setaf 6)\n========== black ==========\n$(tput sgr0)"
 # Exclude proto files because they are auto-generated
 
 if ! black --check .;
@@ -14,14 +17,16 @@ To apply black foramtting to your PR, run:
 from the repository root."
 fi
 
-echo -e "\n========== pylint ==========\n"
-pylint $(git ls-files | grep '\.py$')
+echo -e "$(tput bold; tput setaf 6)\n========== pylint ==========\n$(tput sgr0)"
+pylint $(git ls-files | grep '\.py$') --rcfile=$DIVINER_HOME/pylintrc
 
-echo -e "\n========== rstcheck ==========\n"
+echo -e "$(tput bold; tput setaf 6)\n========== rstcheck ==========\n$(tput sgr0)"
 rstcheck $(git ls-files | grep '\.rst$')
 
 if [[ "$err" != "0" ]]; then
-  echo -e "\nOne of the lint checks failed. Check the above stages for detailed failure reasons."
+  echo -e "\n$(tput bold; tput setaf 1)One of the lint checks failed. Check the above stages for detailed failure reasons.$(tput sgr0)"
+else
+  echo -e "\n$(tput bold; tput setaf 2)All lint checks passed!$(tput sgr0)"
 fi
 
 test $err = 0

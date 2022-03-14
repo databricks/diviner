@@ -128,11 +128,8 @@ disable=print-statement,
         dict-items-not-iterating,
         dict-keys-not-iterating,
         dict-values-not-iterating,
-        # For MLflow, ignore "convention" and "refactor" message types
-        # (see all message types at https://docs.pylint.org/en/1.6.0/tutorial.html#getting-started)
         C,
         R,
-        # Additional style-check messages disabled for MLflow
         invalid-name,
         no-else-return,
         protected-access,
@@ -144,10 +141,7 @@ disable=print-statement,
         fixme,
         global-statement,
         no-member, # disabled due to https://github.com/PyCQA/pylint/issues/1864
-        # redefined-outer-name disabled to avoid linting errors when using pytest fixtures
-        # (see https://stackoverflow.com/questions/46089480/pytest-fixtures-redefining-name-from-outer-scope-pylint)
         redefined-outer-name,
-        # Ignore errors raised against `ExceptionSafeClass` and `ExceptionSafeAbstractClass`
         invalid-metaclass,
         broad-except,
         no-name-in-module,
@@ -162,6 +156,8 @@ disable=print-statement,
         not-an-iterable,
         unsubscriptable-object,
         unsupported-assignment-operation,
+        unnecessary-lambda,
+        arguments-differ,
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

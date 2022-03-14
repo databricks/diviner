@@ -188,5 +188,5 @@ def test_prophet_manual_predict():
 
     assert len(prediction) == 10
 
-    for idx, row in prediction.iterrows():
+    for _, row in prediction.iterrows():
         assert row["yhat"] > 0

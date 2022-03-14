@@ -25,7 +25,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/setup-python
         with:
           python-version: "3.8"
@@ -41,7 +41,7 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses actions/checkout@v2
+      - uses actions/checkout@v3
       - uses ./.github/actions/setup-python
         with:
           python-version: "3.8"
@@ -57,7 +57,7 @@ jobs:
   pmdarima:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/setup-python
         with:
           python-version: "3.8"
@@ -74,7 +74,7 @@ jobs:
   prophet:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/setup-python
         with:
           python-version: "3.8"
@@ -91,7 +91,7 @@ jobs:
   common:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/setup-python
         with:
           python-version: "3.8"

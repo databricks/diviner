@@ -59,8 +59,8 @@ Bug Reports
 
 Bug reports typically go through the following lifecycle:
 
-#.  A **bug report** is submitted through a
-    `GitHub Issue template <https://github.com/databricks/diviner/issues>`_, which contains a high-level description of
+#.  A **bug report** is submitted through an
+    `Issue template <https://github.com/databricks/diviner/issues>`_, which contains a high-level description of
     the bug and information required to reproduce it.
 
 #.  The `bug report is triaged <ISSUE_TRIAGE.rst>`_ to identify whether more information is needed from the author,
@@ -79,7 +79,7 @@ Documentation Fixes
 Documentation issues typically go through the following lifecycle:
 
 #.  A **documentation fix** is submitted through a
-    `GitHub Issue template <https://github.com/databricks/diviner/issues>`_, which contains a high-level description of
+    `Documentation Issue template <https://github.com/databricks/diviner/issues>`_, which contains a high-level description of
     the documentation error and the location (page) is provided with a sample of the error.
 
 #.  The `documentation fix is triaged <ISSUE_TRIAGE.rst>`_ to identify whether more information is needed from the author,
@@ -98,7 +98,7 @@ Usage Issues
 Usage issues typically go through the following lifecycle:
 
 #.  A **usage issue** is submitted through a
-    `GitHub Issue template <https://github.com/databricks/diviner/issues>`_, which contains a high-level description of
+    `Usage Issue template <https://github.com/databricks/diviner/issues>`_, which contains a high-level description of
     the question and a sample of the code being used. It is highly recommended to include the schema of the input data
     to aid in diagnosing issues. A sample of the data can be helpful as well.
 
