@@ -19,7 +19,7 @@ defaults:
     shell: bash --noprofile --norc -exo pipefail {0}
 
 env:
-  PY_VERSION: 3.8.12
+  PY_VERSION: "3.8.12"
 
 jobs:
   lint:
@@ -44,7 +44,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
         with:
-          python-version: $env.PY_VERSION
+          python-version: $(env.PY_VERSION)
       - uses: ./.github/actions/cache-pip
       - name: Install Pandoc
         run: |
@@ -67,7 +67,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
         with:
-          python-version: $env.PY_VERSION
+          python-version: $(env.PY_VERSION)
       - uses: ./.github/actions/cache-pip
       - name: Install Dependencies
         env:
