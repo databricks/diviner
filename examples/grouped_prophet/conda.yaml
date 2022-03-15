@@ -5,4 +5,4 @@ dependencies:
   - python=3.8
   - pip
   - pip:
-      -prophet>=1.0.0
+      - prophet>=1.0.0

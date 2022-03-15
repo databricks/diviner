@@ -15,7 +15,7 @@ defaults:
     shell: bash --noprofile --norc -exo pipefail {0}
 
 env:
-  DIVINER_HOME: /usr/share/miniconda
+  PY_VERSION: "3.8"
 
 jobs:
   examples:
@@ -44,9 +44,9 @@ jobs:
           echo "EXAMPLES_CHANGED: $EXAMPLES_CHANGED"
           echo "::set-output name=examples_changed::$EXAMPLES_CHANGED"
 
-      - uses: ./.github/actions/setup-python
+      - uses: actions/setup-python@v3
         with:
-          python-version: "3.8"
+          python-version: env.PY_VERSION
 
       - name: Install dependencies
         if: ${{ github.event_name == 'schedule' || steps.check-diff.outputs.examples_changed == 'true' }}
@@ -60,11 +60,6 @@ jobs:
         if: ${{ github.event_name == 'schedule' || steps.check-diff.outputs.examples_changed == 'true' }}
         run: |
           pytest tests/examples --durations=30
-
-      - name: Remove conda environments
-        run: |
-          conda remove --all --yes --name test-environment
-          ./dev/remove-conda-envs.sh
 
       - name: Show disk usage
         run: |

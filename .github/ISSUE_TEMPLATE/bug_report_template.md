@@ -43,5 +43,3 @@ Components
 - [ ] `area/utilities`: Common or per-framework utility code
 - [ ] `area/scoring`: Cross validation, back-testing, and associated scoring functionality
 - [ ] `area/docs`: Diviner documentation pages
-
-

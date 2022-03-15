@@ -1,16 +1,14 @@
 from setuptools import setup, find_packages
-import os
+import pathlib
+from typing import Union, List
 
 
-def read(rel_path: str) -> str:
-    here = os.path.abspath(os.path.dirname(__file__))
-    with open(os.path.join(here, rel_path)) as fp:
-        return fp.read()
-
-
-def get_version(rel_path: str) -> str:
-    for line in read(rel_path).splitlines():
-        if line.startswith("__version__"):
+def get_version(rel_path: Union[List[str], str]) -> str:
+    if isinstance(rel_path, str):
+        rel_path = [rel_path]
+    read_path = pathlib.Path(*rel_path).absolute()
+    for line in read_path.read_text().splitlines():
+        if line.startswith("VERSION"):
             delim = '"' if '"' in line else "'"
             return line.split(delim)[1]
     raise RuntimeError("Unable to find version string.")
@@ -20,7 +18,7 @@ REQUIREMENTS = ["numpy", "pandas", "prophet", "pmdarima"]
 
 setup(
     name="diviner",
-    version=get_version("diviner/__init__.py"),
+    version=get_version(["diviner", "version.py"]),
     packages=find_packages(exclude=["tests", "tests.*"]),
     install_requires=REQUIREMENTS,
     zip_safe=False,
