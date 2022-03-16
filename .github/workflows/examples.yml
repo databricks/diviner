@@ -7,7 +7,7 @@ on:
     - cron: "42 7 * * 0"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref == "refs/heads/main" && github.run_number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
   cancel-in-progress: true
 
 defaults:
