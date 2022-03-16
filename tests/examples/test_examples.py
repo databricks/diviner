@@ -1,6 +1,6 @@
 import os
 import pytest
-from diviner.utils import process
+from ..tools import process
 
 EXAMPLES_DIR = "./examples"
 

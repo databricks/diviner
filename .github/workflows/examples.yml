@@ -65,7 +65,7 @@ jobs:
 
       - name: Install Diviner
         run: |
-          pip install --force-reinstall ${{ steps.build-dist.outputs.wheel-path }}
+          pip install ${{ steps.build-dist.outputs.wheel-path }}
           python -c "import diviner; print(diviner.__version__)"
 
       - name: Run example tests

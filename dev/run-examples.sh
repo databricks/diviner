@@ -5,6 +5,6 @@ trap 'err=1' ERR
 DIVINER_HOME=$(pwd)
 export DIVINER_HOME
 
-pytest tests/test_examples.py
+pytest "$DIVINER_HOME"/tests/examples/test_examples.py
 
 test $err = 0
