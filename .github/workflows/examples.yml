@@ -56,6 +56,18 @@ jobs:
         run: |
           source ./dev/install-deps.sh
 
+      - name: Build Diviner
+        id: build-dist
+        run: |
+          python setup.py sdist bdist_wheel
+          wheel_path=$(find dist -type f -name "*.whl")
+          echo "::set-output name=wheel-path::${wheel_path}"
+
+      - name: Install Diviner
+        run: |
+          pip install --force-reinstall ${{ steps.build-dist.outputs.wheel-path }}
+          python -c "import diviner; print(diviner.__version__)"
+
       - name: Run example tests
         if: ${{ github.event_name == 'schedule' || steps.check-diff.outputs.examples_changed == 'true' }}
         run: |
