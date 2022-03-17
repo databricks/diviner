@@ -21,7 +21,7 @@ the grouped collection of series shares a common characteristic in the residuals
 an auto-correlation and partial auto-correlation analysis shows similar relationships for all groups), this approach
 will be faster and less expensive to fit a model than any other means.
 
-.. literalinclude:: /../examples/grouped_pmdarima/arima_example.py
+.. literalinclude:: /../examples/grouped_pmdarima/grouped_pmdarima_arima_example.py
     :caption: GroupedPmdarima manually configured ARIMA model
     :language: python
     :linenos:
@@ -39,7 +39,7 @@ series, the (P, D, Q) seasonal order terms as well.
     the complexity of optimizing these terms, this execution mode will take far longer than an optimization of a
     non-seasonal model.
 
-.. literalinclude:: /../examples/grouped_pmdarima/autoarima_example.py
+.. literalinclude:: /../examples/grouped_pmdarima/grouped_pmdarima_autoarima_example.py
     :caption: GroupedPmdarima non-seasonal AutoARIMA model
     :language: python
     :linenos:
@@ -57,8 +57,19 @@ transformation is applied to each series to force stationarity.
     The relevance of utilizing a normalcy transform on this data is somewhere between 'unlikely' and 'zero'.
     Using a BoxCox transform here is used as an API example only.
 
-.. literalinclude:: /../examples/grouped_pmdarima/pipeline_example.py
+.. literalinclude:: /../examples/grouped_pmdarima/grouped_pmdarima_pipeline_example.py
     :caption: GroupedPmdarima with Pipeline model
+    :language: python
+    :linenos:
+
+GroupedPmdarima Group Subset Prediction Example
+-----------------------------------------------
+
+This example shows a subset prediction of groups by using the `predict_groups <diviner.GroupedPmdarima.predict_groups>`
+method.
+
+.. literalinclude:: /../examples/grouped_pmdarima/grouped_pmdarima_subset_prediction_example.py
+    :caption: GroupedPmdarima Subset Groups Prediction
     :language: python
     :linenos:
 
@@ -69,7 +80,7 @@ The below script illustrates how to perform analytics on a grouped series data s
 utilities can aid in determining appropriate order values (p, d, q) and seasonal order values (P, D, Q) for the
 example shown in :ref:`the ARIMA example <arima_script>`.
 
-.. literalinclude:: /../examples/grouped_pmdarima/grouped_series_exploration.py
+.. literalinclude:: /../examples/grouped_pmdarima/grouped_pmdarima_series_exploration.py
     :caption: GroupedPmdarima series exploration and analysis
     :language: python
     :linenos:
@@ -82,7 +93,17 @@ calculation of the differencing term ``'d'`` for each series in the grouped seri
 this argument (which can be either unique for each group or homogenous across all groups), the optimization algorithm
 can reduce the total number of iterative validation tests.
 
-.. literalinclude:: /../examples/grouped_pmdarima/pmdarima_analyze_differencing_terms_and_apply.py
+.. literalinclude:: /../examples/grouped_pmdarima/grouped_pmdarima_analyze_differencing_terms_and_apply.py
     :caption: GroupedPmdarima manual differencing term extraction and application to AutoARIMA
+    :language: python
+    :linenos:
+
+Supplementary
+-------------
+
+.. note:: To run these examples for yourself with the data generator example, utlize the following code:
+
+.. literalinclude:: /../diviner/utils/example_utils/example_data_generator.py
+    :caption: Synthetic Data Generator
     :language: python
     :linenos:

@@ -190,3 +190,58 @@ def test_prophet_manual_predict():
 
     for _, row in prediction.iterrows():
         assert row["yhat"] > 0
+
+
+def test_prophet_group_subset_predict():
+
+    _rows_to_generate = 30
+    train = data_generator.generate_test_data(2, 1, 1000, "2020-01-01", 1)
+    train_df = train.df
+
+    model = GroupedProphet().fit(train_df, train.key_columns)
+
+    key_entries = []
+    for v in train_df[["key1", "key0"]].iloc[[0]].to_dict().values():
+        key_entries.append(list(v.values())[0])
+    groups = [tuple(key_entries)]
+
+    group_prediction = model.predict_groups(groups, _rows_to_generate, "D")
+
+    assert len(group_prediction) == _rows_to_generate
+    _key1 = group_prediction["key1"].unique()
+    assert len(_key1) == 1
+    assert _key1[0] == groups[0][0]
+    _key0 = group_prediction["key0"].unique()
+    assert len(_key0) == 1
+    assert _key0[0] == groups[0][1]
+
+
+def test_prophet_group_subset_predict_raises_and_warns():
+
+    _rows_to_generate = 30
+    train = data_generator.generate_test_data(2, 1, 1000, "2020-01-01", 1)
+    train_df = train.df
+
+    model = GroupedProphet().fit(train_df, train.key_columns)
+
+    key_entries = []
+    for v in train_df[["key1", "key0"]].iloc[[0]].to_dict().values():
+        key_entries.append(list(v.values())[0])
+    groups = [(key_entries[0], key_entries[1]), ("missing", "key")]
+
+    with pytest.raises(
+        DivinerException, match="Cannot perform predictions due to submitted"
+    ):
+        model.predict_groups(groups, _rows_to_generate, "D")
+
+    with pytest.warns(
+        UserWarning, match="Specified groups are unable to be predicted due to "
+    ):
+        model.predict_groups(groups, _rows_to_generate, "D", on_error="warn")
+
+    with pytest.raises(
+        DivinerException, match="Groups specified for subset forecasting are not"
+    ):
+        model.predict_groups(
+            ("invalid", "invalid"), _rows_to_generate, "D", on_error="ignore"
+        )

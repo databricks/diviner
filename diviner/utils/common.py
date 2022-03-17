@@ -1,3 +1,6 @@
+import logging
+import warnings
+from collections import namedtuple
 from typing import Tuple, Dict, List
 from diviner.exceptions import DivinerException
 import pandas as pd
@@ -122,3 +125,111 @@ def _get_datetime_freq_per_group(dt_indexed_group_data):
         else:
             group_output[group] = pd.infer_freq(df.index)
     return group_output
+
+
+def _restrict_model_collection_by_groups(
+    grouped_model,
+    groups: List[Tuple[str]] = None,
+):
+    """
+    Method for filtering group model(s) from a fit ``Diviner`` model, maintaining a key lookup
+    failure state, and returning the filtered model collection and any failed lookup keys.
+    The ``grouped_model`` object is a dictionary in the form of:
+    {<grouping_key[tuple[str]]>: <fit instance model>} which is produced by a ``Diviner``
+    framework wrapper implementation's ``fit`` method (i.e. ``GroupedProphet().fit()``.
+
+    :param grouped_model: The instance attribute of a framework's implementation ``model``.
+                          For example, in the use of ``GroupedProphet``, once ``.fit()`` is
+                          called on the object, the object will have an attribute ``.model`` that
+                          contains the dictionary of {<grouping_key>: model[Prophet]}. This
+                          structure is what is passed to this argument.
+    :param groups: The user-supplied list of tuples that defines the group entry values to
+                   return predictions for. This is nullable (in the case of a user not submitting
+                   a list of grouping keys, all models will return forecasts).
+    :return: A named tuple of a subset of the matched groups and a list of unmatched keys, i.e.,:
+             ({group[tuple[str]]: Prophet()}, [("a", "b"), ("e", "f"), ("z", "z")]) if the groups
+             ("a", "b"), ("e", "f"), ("z", "z") were not present as grouping keys during the
+             model fit execution.
+    """
+
+    Output = namedtuple("Output", "groups failures")
+    key_lookup_failures = []
+    if groups is not None:
+        model_keys = set(grouped_model.keys())
+        for group in groups:
+            if group not in model_keys:
+                key_lookup_failures.append(str(group))
+        group_collection = {
+            key: model for key, model in grouped_model.items() if key in groups
+        }
+    else:
+        group_collection = grouped_model
+    if len(group_collection) == 0:
+        raise DivinerException(
+            "Groups specified for subset forecasting are not present in the "
+            "fit model. Validate model grouping keys by accessing "
+            "<fit_model>.model.keys()"
+        )
+    return Output(group_collection, key_lookup_failures)
+
+
+def _filter_groups_for_forecasting(
+    grouped_model,
+    groups: List[Tuple[str]] = None,
+    on_error: str = "raise",
+):
+    """
+    Method for error handling, logging, and passing filtering tasks to the private method
+    ``_restrict_model_collection_by_groups()``. There are 3 modes of operation for error handling:
+    * "raise" (default) will raise a  ``DivinerException`` if any user-supplied group does not
+       exist in the fit model.
+    * "warn" will log and print to stderr any unmatched grouping keys not present in the fit model.
+    * "ignore" will silently ignore any unmatched keys and will only raise if none of the keys
+      supplied match.
+
+    :param grouped_model: The instance attribute of a framework's implementation ``model``.
+                          For example, in the use of ``GroupedProphet``, once ``.fit()`` is
+                          called on the object, the object will have an attribute ``.model`` that
+                          contains the dictionary of {<grouping_key>: model[Prophet]}. This
+                          structure is what is passed to this argument.
+    :param groups: The user-supplied list of tuples that defines the group entry values to
+                   return predictions for. This is nullable (in the case of a user not submitting
+                   a list of grouping keys, all models will return forecasts).
+    :param on_error: Alert level setting for handling mismatched group keys.
+                     Default: ``"raise"``
+                     The valid modes are:
+
+                     * "ignore" - no logging or exception raising will occur if a submitted
+                       group key in the ``groups`` argument is not present in the model object.
+
+                       .. Note:: This is a silent failure mode and will not present any
+                           indication of a failure to generate forecast predictions.
+
+                     * "warn" - any keys that are not present in the fit model will be recorded
+                       as logged warnings.
+                     * "raise" - any keys that are not present in the fit model will cause
+                       a ``DivinerException`` to be raised.
+    :return: Filtered subset of grouped models to return for forecasting.
+    """
+    if groups is None:
+        return grouped_model
+    else:
+        model_groups = _restrict_model_collection_by_groups(grouped_model, groups)
+
+        if len(model_groups.failures) > 0:
+
+            if on_error == "raise":
+                raise DivinerException(
+                    "Cannot perform predictions due to submitted group(s) "
+                    f"missing from fit model: {','.join(model_groups.failures)}"
+                )
+            elif on_error == "warn":
+                message = (
+                    "Specified groups are unable to be predicted due to group(s) missing"
+                    f"from fit model: {','.join(model_groups.failures)}"
+                )
+                warnings.warn(message, UserWarning)
+                logger = logging.getLogger()
+                logger.warning(message)
+
+        return model_groups.groups
