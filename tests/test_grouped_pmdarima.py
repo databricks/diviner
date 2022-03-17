@@ -212,7 +212,7 @@ def test_pmdarima_group_subset_predict(data, basic_pmdarima):
     train_df = data.df
 
     key_entries = []
-    for k, v in train_df[["key1", "key0"]].iloc[[0]].to_dict().items():
+    for v in train_df[["key1", "key0"]].iloc[[0]].to_dict().values():
         key_entries.append(list(v.values())[0])
     groups = [tuple(key_entries)]
 
@@ -233,7 +233,7 @@ def test_pmdarima_group_subset_predict_raises_and_warns(data, basic_pipeline):
     train_df = data.df
 
     key_entries = []
-    for k, v in train_df[["key1", "key0"]].iloc[[0]].to_dict().items():
+    for v in train_df[["key1", "key0"]].iloc[[0]].to_dict().values():
         key_entries.append(list(v.values())[0])
     groups = [(key_entries[0], key_entries[1]), ("bogus", "entry")]
 

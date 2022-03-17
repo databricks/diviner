@@ -273,8 +273,7 @@ on_error
     are:
 
     - ``"raise"``
-        A :py:class:`DivinerException <diviner.exceptions.DivinerException>` is raised if any supplied
-        groups do not match to the fitted groups.
+        A ``DivinerException`` is raised if any supplied  groups do not match to the fitted groups.
     - ``"warn"``
         A warning is emitted (printed) and logged for any groups that do not match to those that the model
         was fit with.
@@ -282,8 +281,8 @@ on_error
         Invalid groups will silently fail prediction.
 
     .. note::
-        A :py:class:`DivinerException <diviner.exceptions.DivinerException>` will still be raised even in ``"ignore"``
-        mode if there are no valid fit groups to match the provided ``groups`` provided to this method.
+        A ``DivinerException`` will still be raised even in ``"ignore"`` mode if there are no valid fit groups
+        to match the provided ``groups`` provided to this method.
 
 predict_kwargs
     *[Optional]* Extra ``kwarg`` arguments for any of the transform stages of a ``Pipeline`` or for additional ``predict``

@@ -277,7 +277,12 @@ class GroupedProphet(GroupedForecaster):
             self.model, horizon, frequency, groups, on_error
         )
 
-        return self._run_predictions(grouped_data)
+        predictions = self._run_predictions(grouped_data)
+
+        if predict_col != "yhat":
+            predictions.rename(columns={"yhat": predict_col}, inplace=True)
+
+        return predictions
 
     def cross_validate(
         self, horizon, period=None, initial=None, parallel=None, cutoffs=None
