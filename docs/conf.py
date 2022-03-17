@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.abspath("../examples/"))
 # -- Project information -----------------------------------------------------
 
 project = "Diviner"
-copyright = "Databricks Inc. All rights reserved."
+project_copyright = "Databricks Inc. All rights reserved."
 author = "Databricks"
 
 import diviner.version
@@ -89,3 +89,6 @@ html_permalinks_icon = " "
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = "Divinerdoc"
+
+# -- Nitpick ignore -----------------------------------------------------------
+nitpick_ignore = [("py:class", "pandas.core.frame.DataFrame")]

@@ -1,7 +1,8 @@
+
 .. _quickstart:
 
-Quickstart
-==========
+Quickstart Guide
+================
 
 This guide will walk through the basic elements of Diviner's API, discuss the approach to data structures, and show a
 simple example of using a ``GroupedProphet`` model to generate forecasts for a multi-series data set.

@@ -28,7 +28,7 @@ To see working end-to-end examples, you can go to :ref:`tutorials-and-examples`.
 to explore the data structures required for training, how to extract forecasts for each group, and demonstrations of the
 saving and loading of trained models.
 
-.. _fit:
+.. _fitting:
 
 Model fitting
 ^^^^^^^^^^^^^
@@ -61,12 +61,12 @@ Example:
 
     grouped_prophet_model = GroupedProphet().fit(df, ["country", "region"])
 
-.. _forecast:
+.. _forecasting:
 
 Forecast
 ^^^^^^^^
 The :py:meth:`forecast <diviner.GroupedProphet.forecast>` method is the 'primary means' of generating future forecast
-predictions. For each group that was trained in the :ref:`fit` of the grouped model,
+predictions. For each group that was trained in the :ref:`fitting` of the grouped model,
 a value of time periods is predicted based upon the last event date (or datetime) from each series' temporal
 termination.
 
@@ -79,10 +79,10 @@ frequency
     training data (i.e., training data can be in days and predictions can be in months, minutes, hours, or years)
 
 The frequency abbreviations that are allowed can be found
-`here. <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_
+`here. <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__
 
 .. note:: The generation of error estimates (`yhat_lower` and `yhat_upper`) in the output of a forecast are controlled
-    through the use of the ``Prophet`` argument ``uncertainty_samples`` during class instantiation, prior to :ref:`fit`
+    through the use of the ``Prophet`` argument ``uncertainty_samples`` during class instantiation, prior to :ref:`fitting`
     being called. Setting this value to `0` will eliminate error estimates and will dramatically increase the speed of
     training, prediction, and cross validation.
 
@@ -91,7 +91,7 @@ grouping keys defined (in the order in which they were generated), the grouping 
 values (deconstructed; e.g. 'weekly', 'yearly', 'daily' seasonality terms and the 'trend'), the date (datetime) values,
 and the prediction itself (labeled `yhat`).
 
-.. _predict:
+.. _predicting:
 
 Predict
 ^^^^^^^
@@ -138,7 +138,7 @@ The structure of this submitted ``DataFrame`` for the above use case is:
 
 Usage of this method with the above specified df would generate 4 individual predictions; one for each row.
 
-.. note:: The :ref:`forecast` method is more appropriate for most use cases as it will continue immediately after the
+.. note:: The :ref:`forecasting` method is more appropriate for most use cases as it will continue immediately after the
     training period of data terminates.
 
 Save

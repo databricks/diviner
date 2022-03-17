@@ -1,0 +1,78 @@
+name: Examples
+
+on:
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: "42 7 * * 0"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -exo pipefail {0}
+
+env:
+  PY_VERSION: "3.8.12"
+
+jobs:
+  examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Increase available disk space
+        run: |
+          # Increase available disk space by removing unnecessary tool chains:
+          # https://github.com/actions/virtual-environments/issues/709#issuecomment-612569242
+          rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+
+      - name: Check diff
+        id: check-diff
+        run: |
+          if [ ! "$(git branch --show-current)" == "main" ]; then
+            git fetch origin main:main
+          fi
+
+          REGEXP="tests/examples\|examples"
+          CHANGED_FILES=$(git diff --name-only main..HEAD | grep "$REGEXP") || true;
+          EXAMPLES_CHANGED=$([[ ! -z "$CHANGED_FILES" ]] && echo "true" || echo "false")
+
+          echo -e "CHANGED_FILES:\n$CHANGED_FILES"
+          echo "EXAMPLES_CHANGED: $EXAMPLES_CHANGED"
+          echo "::set-output name=examples_changed::$EXAMPLES_CHANGED"
+
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ env.PY_VERSION }}
+
+      - name: Install dependencies
+        if: ${{ github.event_name == 'schedule' || steps.check-diff.outputs.examples_changed == 'true' }}
+        env:
+          INSTALL_PMDARIMA_DEPS: true
+          INSTALL_PROPHET_DEPS: true
+        run: |
+          source ./dev/install-deps.sh
+
+      - name: Build Diviner
+        id: build-dist
+        run: |
+          python setup.py sdist bdist_wheel
+          wheel_path=$(find dist -type f -name "*.whl")
+          echo "::set-output name=wheel-path::${wheel_path}"
+
+      - name: Install Diviner
+        run: |
+          pip install ${{ steps.build-dist.outputs.wheel-path }}
+          python -c "import diviner; print(diviner.__version__)"
+
+      - name: Run example tests
+        if: ${{ github.event_name == 'schedule' || steps.check-diff.outputs.examples_changed == 'true' }}
+        run: |
+          pytest tests/examples --durations=30
+
+      - name: Show disk usage
+        run: |
+          df -h

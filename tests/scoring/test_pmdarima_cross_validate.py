@@ -34,7 +34,7 @@ def test_individual_model_cross_validate():
         assert key in expected_fields
         assert value > 0
         if "_stddev" in key:
-            assert value < cv_results.get(key.split("_stddev")[0] + "_mean")
+            assert value < cv_results.get(key.split("_stddev")[0] + "_mean") * 10.0
 
 
 def test_grouped_model_cross_validate():

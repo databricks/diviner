@@ -1,0 +1,116 @@
+name: Diviner tests
+
+on:
+  push:
+    branches:
+      - main
+      - branch-[0-9]+.[0-9]+
+  pull_request:
+    branches:
+      - main
+      - branch-[0-9]+.[0-9]+
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -exo pipefail {0}
+
+env:
+  PY_VERSION: "3.8.12"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ env.PY_VERSION }}
+      - uses: ./.github/actions/cache-pip
+      - name: Install dependencies
+        run: |
+          source ./dev/install-deps.sh
+          pip install -r requirements/lint-requirements.txt
+      - name: Run lint checks
+        run: |
+          source ./dev/lint.sh
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ env.PY_VERSION }}
+      - uses: ./.github/actions/cache-pip
+      - name: Install Pandoc
+        run: |
+          sudo wget https://github.com/jgm/pandoc/releases/download/2.17.1.1/pandoc-2.17.1.1-1-amd64.deb
+          sudo dpkg -i pandoc-2.17.1.1-1-amd64.deb
+      - name: Install Dependencies
+        env:
+          INSTALL_PROPHET_DEPS: true
+          INSTALL_PMDARIMA_DEPS: true
+        run: |
+          source ./dev/install-deps.sh
+          pip install -r requirements/docs-requirements.txt
+      - name: Build docs
+        run: |
+          source ./dev/build-docs.sh
+
+  pmdarima:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ env.PY_VERSION }}
+      - uses: ./.github/actions/cache-pip
+      - name: Install Dependencies
+        env:
+          INSTALL_PROPHET_DEPS: true
+          INSTALL_PMDARIMA_DEPS: true
+        run: |
+          source ./dev/install-deps.sh
+      - name: Run tests
+        run: |
+          source ./dev/run-pmdarima-tests.sh
+
+  prophet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ env.PY_VERSION }}
+      - uses: ./.github/actions/cache-pip
+      - name: Install Dependencies
+        env:
+          INSTALL_PROPHET_DEPS: true
+          INSTALL_PMDARIMA_DEPS: true
+        run: |
+          source ./dev/install-deps.sh
+      - name: Run tests
+        run: |
+          source ./dev/run-prophet-tests.sh
+
+  common:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ env.PY_VERSION }}
+      - uses: ./.github/actions/cache-pip
+      - name: Install Dependencies
+        env:
+          INSTALL_PROPHET_DEPS: true
+          INSTALL_PMDARIMA_DEPS: true
+        run: |
+          source ./dev/install-deps.sh
+      - name: Run tests
+        run: |
+          source ./dev/run-common-tests.sh
