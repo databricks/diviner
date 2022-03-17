@@ -1,6 +1,6 @@
 from pmdarima.arima.arima import ARIMA
 from diviner import GroupedPmdarima
-from examples.example_data_generator import generate_example_data
+from diviner.utils.example_utils.example_data_generator import generate_example_data
 
 if __name__ == "__main__":
 

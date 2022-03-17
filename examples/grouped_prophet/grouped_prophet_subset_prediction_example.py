@@ -1,4 +1,4 @@
-from examples.example_data_generator import generate_example_data
+from diviner.utils.example_utils.example_data_generator import generate_example_data
 from diviner import GroupedProphet
 
 if __name__ == "__main__":
