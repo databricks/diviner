@@ -1,7 +1,7 @@
 import pprint
 from diviner import PmdarimaAnalyzer
 
-from examples.example_data_generator import generate_example_data
+from diviner.utils.example_utils.example_data_generator import generate_example_data
 
 
 def _print_dict(data, name):

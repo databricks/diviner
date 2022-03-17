@@ -1,5 +1,0 @@
-pylint==2.11.1
-black==21.10b0
-sphinx_rtd_theme
-nbsphinx
-ipykernel

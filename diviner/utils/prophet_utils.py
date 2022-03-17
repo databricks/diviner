@@ -1,16 +1,11 @@
-import logging
 from inspect import signature
-from typing import Tuple, Union, List, Set
+from typing import Tuple, List
 
 from prophet.diagnostics import cross_validation, performance_metrics
 
 from diviner.config.grouped_prophet.prophet_config import _get_extract_params
 from diviner.config.grouped_prophet.utils import prophet_config_utils
-from diviner.exceptions import DivinerException
-from diviner.utils.common import (
-    _restrict_model_collection_by_groups,
-    _filter_groups_for_forecasting,
-)
+from diviner.utils.common import _filter_groups_for_forecasting
 
 
 def _generate_future_df(model, horizon, frequency):

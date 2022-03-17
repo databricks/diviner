@@ -33,7 +33,7 @@ Base Estimators and API interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The usage of the :py:class:`GroupedPmdarima <diviner.GroupedPmdarima>` API is slightly different from the other grouped
-forecasting library wrappers within :py:mod:`Diviner <diviner>`. This is due to the ability of ``pmdarima`` to support
+forecasting library wrappers within ``Diviner``. This is due to the ability of ``pmdarima`` to support
 multiple modes of configuration.
 
 These modes that are available to construct a model are:

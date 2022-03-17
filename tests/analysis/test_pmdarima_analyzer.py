@@ -33,7 +33,7 @@ def test_pmdarima_default_arima_fit_attribute_extraction(data):
         data.df, data.key_columns, "y", "ds"
     )
 
-    for group, model in arima_model.model.items():
+    for group in arima_model.model.keys():
         pipeline = arima_model._extract_individual_model(group)
         instance_model = _extract_arima_model(pipeline)
 
@@ -145,7 +145,7 @@ def test_pmdarima_ndiffs_override_class_args(data):
 
     params = model.get_model_params()
 
-    for idx, row in params.iterrows():
+    for _, row in params.iterrows():
         assert row["d"] <= 4
 
 
@@ -155,7 +155,7 @@ def test_pmdarima_calculate_acf_full_args(data):
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     ).calculate_acf(unbiased=True, nlags=90, qstat=True, fft=True, alpha=0.1)
 
-    for group, payload in acf_data.items():
+    for payload in acf_data.values():
         assert {"acf", "qstat", "pvalues", "confidence_intervals"}.issubset(
             payload.keys()
         )
@@ -170,7 +170,7 @@ def test_pmdarima_calculate_acf_minimal_args(data):
     acf_data = PmdarimaAnalyzer(
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     ).calculate_acf(unbiased=False, nlags=90, qstat=False, fft=False, alpha=None)
-    for group, payload in acf_data.items():
+    for payload in acf_data.values():
         assert {"acf"}.issubset(payload.keys())
         assert [
             key not in payload.keys()
@@ -185,7 +185,7 @@ def test_pmdarima_calculate_pacf_full_args(data):
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     ).calculate_pacf(nlags=90, method="yw", alpha=0.05)
 
-    for group, payload in pacf_data.items():
+    for payload in pacf_data.values():
         assert {"pacf", "confidence_intervals"}.issubset(payload.keys())
         assert len(payload.get("pacf")) == 91
         assert len(payload.get("confidence_intervals")) == 91
@@ -197,7 +197,7 @@ def test_pmdarima_calculate_pacf_minimal_args(data):
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     ).calculate_pacf()
 
-    for group, payload in pacf_data.items():
+    for payload in pacf_data.values():
         assert {"pacf"}.issubset(payload.keys())
         assert [key not in payload.keys() for key in ["confidence_intervals"]]
         assert len(payload.get("pacf")) == 32
@@ -209,7 +209,7 @@ def test_pmdarima_generate_diff(data):
         df=data.df, group_key_columns=data.key_columns, y_col="y", datetime_col="ds"
     ).generate_diff(lag=2, differences=1)
 
-    for group, data in diff.items():
+    for data in diff.values():
         assert len(data["diff"]) == (365 * 4) - 2
         assert data["series_start"] > 0
         assert isinstance(data["series_start"], float)

@@ -32,9 +32,9 @@ This script shows a simple example of training a series of Prophet models and ge
 Supplementary
 -------------
 
-.. note:: To run these examples for yourself with the data generator example, utlize the following code:
+.. note:: To run these examples for yourself with the data generator example, utilize the following code:
 
-.. literalinclude:: /../examples/example_data_generator.py
+.. literalinclude:: /../diviner/utils/example_utils/example_data_generator.py
     :caption: Synthetic Data Generator
     :language: python
     :linenos:

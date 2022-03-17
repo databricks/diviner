@@ -497,7 +497,7 @@ class GroupedPmdarima(GroupedForecaster):
         """
         self._fit_check()
         metric_extract = {}
-        for group, pipeline in self.model.items():
+        for group in self.model.keys():
             arima_model = _extract_arima_model(self._extract_individual_model(group))
             metric_extract[group] = _get_arima_training_metrics(arima_model)
         return create_reporting_df(
@@ -514,7 +514,7 @@ class GroupedPmdarima(GroupedForecaster):
         """
         self._fit_check()
         params_extract = {}
-        for group, pipeline in self.model.items():
+        for group in self.model.keys():
             arima_model = _extract_arima_model(self._extract_individual_model(group))
             params_extract[group] = _get_arima_params(arima_model)
         return create_reporting_df(

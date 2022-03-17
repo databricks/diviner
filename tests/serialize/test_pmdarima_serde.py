@@ -44,7 +44,7 @@ def test_grouped_pmdarima_serialize(model):
     encoded = PmdarimaEncoder().encode(model)
     decoded = PmdarimaDecoder().decode(encoded)
 
-    for key, value in model_attrs.items():
+    for key in model_attrs.keys():
         if key not in {"model", "_model_template"}:
             assert model_attrs[key] == decoded[key]
         else:
