@@ -48,7 +48,11 @@ jobs:
         with:
           python-version: ${{ env.PY_VERSION }}
 
-      - name: Install dependencies
+      - name: Install Build dependencies
+        run: |
+          pip install wheel twine
+
+      - name: Install Diviner dependencies
         if: ${{ github.event_name == 'schedule' || steps.check-diff.outputs.examples_changed == 'true' }}
         env:
           INSTALL_PMDARIMA_DEPS: true
