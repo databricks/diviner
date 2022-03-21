@@ -30,8 +30,12 @@ setup(
     long_description_content_type="text/x-rst",
     license="Apache2.0",
     classifiers=[
-        "Intended Audience: Developers",
+        "Intended Audience :: Developers",
+        "Intended Audience :: End Users/Desktop",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Development Status :: 3 - Alpha"
     ],
     keywords="ml ai databricks",
     python_requires=">=3.7",
