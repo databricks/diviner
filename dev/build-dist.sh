@@ -73,13 +73,16 @@ export dev_warning
 
 if grep -q "dev" <<< "$diviner_ver"; then
   dev_build=1
-  dev_warning
+  echo "$dev_warning"
 fi
 
 read -p "Do you wish to proceed with building this release version? $(tput bold)(y/n)$(tput sgr0): " -n 1 -r
 echo
 
 if [[ $REPLY =~ ^[Yy]$ ]]; then
+  # clean the dist working directory
+  echo "Cleaning the dist/ directory..."
+  rm -r -f "$DIVINER_HOME"/dist/*
   # build the package
   python "$DIVINER_HOME"/setup.py sdist bdist_wheel
   tar tzf "$DIVINER_HOME"/dist/diviner-${diviner_ver}.tar.gz
@@ -93,9 +96,13 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     if [[ $REPLY =~ ^[Yy]$ ]]; then
       # release to pypi
       echo "$(tput bold; tput setaf 3)Uploading distribution to pypi... $(tput sgr0)"
-      # TODO: uncomment when repo is public
-      # twine upload "$DIVINER_HOME"/dist/*
-      echo "$(tput bold; tput setaf 2)Upload complete!$(tput sgr0)"
+      twine upload "$DIVINER_HOME"/dist/*
+      upload_success=$?
+      if [[ $upload_success == 0 ]]; then
+        echo "$(tput bold; tput setaf 2)Upload complete!$(tput sgr0)"
+      else
+        echo "$(tput bold; tput setaf 1)Upload did not succeed!$(tput sgr0)"
+      fi
       exit
     fi
     elif [[ $release = 1 && $dev_build = 1 ]]; then

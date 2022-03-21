@@ -13,5 +13,8 @@ exclude = '''
   | buck-out
   | build
   | dist
+  | \.coverage
+  | \.status_pipe
+  | diviner.egg-info
 )/
 '''
