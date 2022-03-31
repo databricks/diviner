@@ -12,7 +12,7 @@ forecasting projects that involve the predictions of many discrete independent e
     :target: https://databricks-diviner.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation
 
-.. |pypi| image:: https://img.shields.io/badge/pypi/v/diviner.svg
+.. |pypi| image:: https://img.shields.io/pypi/v/diviner?style=plastic
     :target: https://pypi.org/project/diviner/
     :alt: Latest Python Release
 
