@@ -6,21 +6,33 @@ Diviner is an execution framework wrapper around popular open source time series
 The aim of the project is to simplify the creation, training, orchestration, and MLOps logistics associated with
 forecasting projects that involve the predictions of many discrete independent events.
 
-|docs| |pypi| |license| |downloads|
+|docs| |build| |examples| |core| |pypi| |license| |downloads|
 
-.. |docs| image:: https://readthedocs.org/projects/databricks-diviner/badge/?version=latest
+.. |docs| image:: https://img.shields.io/badge/docs-latest-success.svg?style=for-the-badge&logo=readthedocs
     :target: https://databricks-diviner.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation
 
-.. |pypi| image:: https://img.shields.io/badge/pypi/v/diviner.svg
+.. |build| image:: https://img.shields.io/github/workflow/status/databricks/diviner/Test%20package%20build?label=Build%20CI&style=for-the-badge&logo=github
+    :target: https://github.com/databricks/diviner/actions/workflows/test-package-build.yml
+    :alt: Build CI
+
+.. |examples| image:: https://img.shields.io/github/workflow/status/databricks/diviner/Examples?label=Examples&style=for-the-badge&logo=github
+    :target: https://github.com/databricks/diviner/actions/workflows/examples.yml
+    :alt: Examples CI
+
+.. |core| image:: https://img.shields.io/github/workflow/status/databricks/diviner/Diviner%20tests?label=Core%20CI&style=for-the-badge&logo=github
+    :target: https://github.com/databricks/diviner/actions/workflows/main.yml
+    :alt: Core CI
+
+.. |pypi| image:: https://img.shields.io/pypi/v/diviner.svg?style=for-the-badge&logo=pypi&logoColor=white
     :target: https://pypi.org/project/diviner/
     :alt: Latest Python Release
 
-.. |license| image:: https://img.shields.io/badge/license-Apache%202-brightgreen.svg
+.. |license| image:: https://img.shields.io/badge/license-Apache%202-brightgreen.svg?style=for-the-badge&logo=apache
     :target: https://github.com/databricks/diviner/blob/main/LICENSE.txt
     :alt: Apache 2 License
 
-.. |downloads| image:: https://pepy.tech/badge/diviner
+.. |downloads| image:: https://img.shields.io/pypi/dm/diviner?style=for-the-badge&logo=pypi&logoColor=white
     :target: https://pepy.tech/project/diviner
     :alt: Total Downloads
 
