@@ -284,9 +284,8 @@ class GroupedPmdarima(GroupedForecaster):
         periods = row_entry[n_periods_col]
         inverse_transform = row_entry.get("inverse_transform", True)
         model = self._extract_individual_model(group_key)
-        if isinstance(self._model_template, Pipeline) and Version(pmdarima.__version__) < Version(
-            "2.0.0"
-        ):
+
+        if isinstance(self._model_template, Pipeline):
             prediction = model.predict(
                 n_periods=periods,
                 X=exog,
