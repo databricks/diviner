@@ -23,13 +23,13 @@ required_files=" -r requirements/base-requirements.txt"
 
 if [[ "$INSTALL_PROPHET_DEPS" == "true" ]]; then
   # Prophet does not build a .whl correctly from a pip install. Install dependencies first.
-  if [[ -z "$(pip cache list prophet --format abspath)" ]]; then
-    tmp_dir=$(mktemp -d)
-    pip download --no-deps --dest "$tmp_dir" --no-cache-dir prophet
-    tar -zxvf "$tmp_dir"/*.tar.gz -C "$tmp_dir"
-    pip install -r "$(find "$tmp_dir" -name requirements.txt)"
-    rm -rf "$tmp_dir"
-  fi
+#  if [[ -z "$(pip cache list prophet --format abspath)" ]]; then
+#    tmp_dir=$(mktemp -d)
+#    pip download --no-deps --dest "$tmp_dir" --no-cache-dir prophet
+#    tar -zxvf "$tmp_dir"/*.tar.gz -C "$tmp_dir"
+#    pip install -r "$(find "$tmp_dir" -name requirements.txt)"
+#    rm -rf "$tmp_dir"
+#  fi
   required_files+=" -r requirements/prophet-requirements.txt"
 fi
 
