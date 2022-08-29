@@ -75,8 +75,7 @@ class BaseGroupGenerator(abc.ABC):
         """
         if not group_key_columns or len(group_key_columns) == 0:
             raise DivinerException(
-                "Argument '_group_key_columns' tuple must contain at "
-                "least one string entry."
+                "Argument '_group_key_columns' tuple must contain at " "least one string entry."
             )
 
         self._group_key_columns = group_key_columns

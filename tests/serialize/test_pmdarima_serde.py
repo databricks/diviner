@@ -25,9 +25,7 @@ def data():
 def model(data):
 
     arima = GroupedPmdarima(
-        model_template=Pipeline(
-            steps=[("arima", AutoARIMA(out_of_sample_size=60, max_order=7))]
-        ),
+        model_template=Pipeline(steps=[("arima", AutoARIMA(out_of_sample_size=60, max_order=7))]),
     ).fit(
         df=data.df,
         group_key_columns=data.key_columns,

@@ -156,9 +156,7 @@ def test_pmdarima_calculate_acf_full_args(data):
     ).calculate_acf(unbiased=True, nlags=90, qstat=True, fft=True, alpha=0.1)
 
     for payload in acf_data.values():
-        assert {"acf", "qstat", "pvalues", "confidence_intervals"}.issubset(
-            payload.keys()
-        )
+        assert {"acf", "qstat", "pvalues", "confidence_intervals"}.issubset(payload.keys())
         assert len(payload.get("acf")) == 91
         assert len(payload.get("qstat")) == 90
         assert len(payload.get("confidence_intervals")) == 91
@@ -172,10 +170,7 @@ def test_pmdarima_calculate_acf_minimal_args(data):
     ).calculate_acf(unbiased=False, nlags=90, qstat=False, fft=False, alpha=None)
     for payload in acf_data.values():
         assert {"acf"}.issubset(payload.keys())
-        assert [
-            key not in payload.keys()
-            for key in ["qstat", "pvalues", "confidence_intervals"]
-        ]
+        assert [key not in payload.keys() for key in ["qstat", "pvalues", "confidence_intervals"]]
         assert len(payload.get("acf")) == 91
 
 
@@ -224,9 +219,7 @@ def test_pmdarima_reconstruct_series_from_diff_inv(data):
 
     group_dfs = analyzer._group_df
 
-    inverted = analyzer.generate_diff_inversion(
-        diff, lag=2, differences=1, recenter=True
-    )
+    inverted = analyzer.generate_diff_inversion(diff, lag=2, differences=1, recenter=True)
 
     for group, data in group_dfs:
 
@@ -240,9 +233,7 @@ def test_pmdarima_diff_inv_fails_with_invalid_data(data):
     )
     diff = analyzer.generate_diff(lag=1, differences=1)
 
-    with pytest.raises(
-        DivinerException, match="group_diff_data does not contain the key `diff`"
-    ):
+    with pytest.raises(DivinerException, match="group_diff_data does not contain the key `diff`"):
         diff_mod = {}
         for key, value in diff.items():
             diff_mod[key] = {"series_start": value.get("series_start")}

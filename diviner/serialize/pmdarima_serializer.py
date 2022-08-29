@@ -22,8 +22,7 @@ class PmdarimaEncoder:
 
     def _encode_dict(self, name, obj):
         self.serialized_model[name] = {
-            self._byte_encode(key): self._byte_encode(value)
-            for key, value in obj.items()
+            self._byte_encode(key): self._byte_encode(value) for key, value in obj.items()
         }
 
     def _encode_obj(self, name, obj):
@@ -57,8 +56,7 @@ class PmdarimaDecoder:
 
     def _decode_dict(self, key, obj):
         self.model_decode[key] = {
-            self._byte_decode(key): self._byte_decode(value)
-            for key, value in obj.items()
+            self._byte_decode(key): self._byte_decode(value) for key, value in obj.items()
         }
 
     def decode(self, model_json):

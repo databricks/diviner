@@ -31,8 +31,7 @@ def _extract_arima_model(model):
         arima_model = model
     else:
         raise DivinerException(
-            f"Failed to access the model instance type. '{type(model)}' "
-            "is not recognized."
+            f"Failed to access the model instance type. '{type(model)}' " "is not recognized."
         )
     return arima_model  # Access the wrapped ARIMA model instance
 

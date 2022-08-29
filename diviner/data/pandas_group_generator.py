@@ -80,9 +80,7 @@ class PandasGroupGenerator(BaseGroupGenerator):
         _validate_keys_in_df(df, self._group_key_columns)
 
         master_group_df = df.copy()
-        master_group_df[self._master_group_key] = master_group_df[
-            [*self._group_key_columns]
-        ].apply(
+        master_group_df[self._master_group_key] = master_group_df[[*self._group_key_columns]].apply(
             lambda column: tuple(column), axis=1
         )  # pylint: disable=unnecessary-lambda
         return master_group_df
@@ -138,9 +136,7 @@ class PandasGroupGenerator(BaseGroupGenerator):
         master_key_generation = self._get_df_with_master_key_column(df)
 
         group_consolidation_df = (
-            master_key_generation.groupby([self._master_group_key, self._datetime_col])[
-                self._y_col
-            ]
+            master_key_generation.groupby([self._master_group_key, self._datetime_col])[self._y_col]
             .agg("sum")
             .reset_index()
         )
