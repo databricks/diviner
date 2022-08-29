@@ -268,7 +268,7 @@ class PmdarimaAnalyzer:
         group_acf_data = {}
         for group, df in self._group_df:
             if Version(pmdarima.__version__) < Version("2.0.0"):
-                acf_data = acf(  # pylint: disable=E1123
+                acf_data = acf(  # pylint: disable=unexpected-keyword-arg
                     x=df[self._y_col],
                     unbiased=unbiased,
                     nlags=nlags,
