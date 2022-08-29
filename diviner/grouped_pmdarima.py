@@ -3,8 +3,6 @@ import os
 import warnings
 from copy import deepcopy
 from typing import Tuple, List, Dict
-from packaging.version import Version
-import pmdarima
 from pmdarima import ARIMA, AutoARIMA
 from pmdarima.pipeline import Pipeline
 from pmdarima.warnings import ModelFitWarning
