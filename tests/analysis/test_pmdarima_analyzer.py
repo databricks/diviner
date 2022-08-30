@@ -170,7 +170,7 @@ def test_pmdarima_calculate_acf_minimal_args(data):
     ).calculate_acf(unbiased=False, nlags=90, qstat=False, fft=False, alpha=None)
     for payload in acf_data.values():
         assert {"acf"}.issubset(payload.keys())
-        assert [key not in payload.keys() for key in ["qstat", "pvalues", "confidence_intervals"]]
+        assert any(key not in payload.keys() for key in ["qstat", "pvalues", "confidence_intervals"])
         assert len(payload.get("acf")) == 91
 
 
@@ -194,7 +194,7 @@ def test_pmdarima_calculate_pacf_minimal_args(data):
 
     for payload in pacf_data.values():
         assert {"pacf"}.issubset(payload.keys())
-        assert [key not in payload.keys() for key in ["confidence_intervals"]]
+        assert any(key not in payload.keys() for key in ["confidence_intervals"])
         assert len(payload.get("pacf")) == 32
 
 
