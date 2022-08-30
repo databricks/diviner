@@ -7,13 +7,7 @@ class ShellCommandException(Exception):
 
 
 def exec_cmd(
-    cmd,
-    throw_on_error=True,
-    env=None,
-    stream_output=False,
-    cwd=None,
-    cmd_stdin=None,
-    **kwargs
+    cmd, throw_on_error=True, env=None, stream_output=False, cwd=None, cmd_stdin=None, **kwargs
 ):
     """
     Runs a command as a child process.
@@ -65,7 +59,6 @@ def exec_cmd(
         exit_code = child.wait()
         if throw_on_error and exit_code != 0:
             raise ShellCommandException(
-                "Non-zero exit code: %s\n\nSTDOUT:\n%s\n\nSTDERR:%s"
-                % (exit_code, stdout, stderr)
+                "Non-zero exit code: %s\n\nSTDOUT:\n%s\n\nSTDERR:%s" % (exit_code, stdout, stderr)
             )
         return exit_code, stdout, stderr

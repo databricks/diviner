@@ -15,9 +15,7 @@ def _generate_time_series(series_size: int):
     )
     trend = [
         np.polyval([15.0, 1.0, 5], x)
-        for x in np.linspace(
-            start=0, stop=np.random.randint(low=0, high=4), num=series_size
-        )
+        for x in np.linspace(start=0, stop=np.random.randint(low=0, high=4), num=series_size)
     ]
     seasonality = [
         30 * np.sin(2 * np.pi * 1000 * (i / (series_size * 200))) + 40
@@ -70,9 +68,7 @@ def generate_test_data(
 ):
 
     Structure = namedtuple("Structure", "df key_columns")
-    data = _generate_raw_df(
-        column_count, series_count, series_size, start_dt, days_period
-    )
+    data = _generate_raw_df(column_count, series_count, series_size, start_dt, days_period)
     key_columns = list(data.columns)
 
     for key in ["ds", "y"]:

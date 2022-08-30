@@ -165,9 +165,7 @@ class GroupedProphet(GroupedForecaster):
         """
 
         if group_key not in list(self.model.keys()):
-            raise DivinerException(
-                f"The grouping key '{group_key}' is not in the model instance."
-            )
+            raise DivinerException(f"The grouping key '{group_key}' is not in the model instance.")
         model = deepcopy(self.model.get(group_key))
         raw_prediction = model.predict(df)
         raw_prediction.insert(
@@ -184,13 +182,9 @@ class GroupedProphet(GroupedForecaster):
         :param grouped_data: Collection of ``List[(master_group_key, future_df)]``
         :return: A consolidated (unioned) single DataFrame of all groups forecasts
         """
-        predictions = [
-            self._predict_prophet(group_key, df) for group_key, df in grouped_data
-        ]
+        predictions = [self._predict_prophet(group_key, df) for group_key, df in grouped_data]
 
-        return _restructure_predictions(
-            predictions, self._group_key_columns, self._master_key
-        )
+        return _restructure_predictions(predictions, self._group_key_columns, self._master_key)
 
     def predict(self, df, predict_col: str = "yhat"):
         """
@@ -273,9 +267,7 @@ class GroupedProphet(GroupedForecaster):
         """
 
         self._fit_check()
-        grouped_data = generate_future_dfs(
-            self.model, horizon, frequency, groups, on_error
-        )
+        grouped_data = generate_future_dfs(self.model, horizon, frequency, groups, on_error)
 
         predictions = self._run_predictions(grouped_data)
 
@@ -284,9 +276,7 @@ class GroupedProphet(GroupedForecaster):
 
         return predictions
 
-    def cross_validate(
-        self, horizon, period=None, initial=None, parallel=None, cutoffs=None
-    ):
+    def cross_validate(self, horizon, period=None, initial=None, parallel=None, cutoffs=None):
         """
         Utility method for generating the cross validation dataset for each grouping key.
         This is a wrapper around ``prophet.diagnostics.cross_validation`` and uses the
@@ -341,9 +331,7 @@ class GroupedProphet(GroupedForecaster):
                      DataFrame>}
             """
         self._fit_check()
-        return group_performance_metrics(
-            cv_results, self, metrics, rolling_window, monthly
-        )
+        return group_performance_metrics(cv_results, self, metrics, rolling_window, monthly)
 
     def cross_validate_and_score(
         self,
@@ -416,9 +404,7 @@ class GroupedProphet(GroupedForecaster):
         model_params = {
             group_key: _extract_params(model) for group_key, model in self.model.items()
         }
-        return create_reporting_df(
-            model_params, self._master_key, self._group_key_columns
-        )
+        return create_reporting_df(model_params, self._master_key, self._group_key_columns)
 
     def forecast(self, horizon: int, frequency: str):
         """
@@ -481,9 +467,7 @@ class GroupedProphet(GroupedForecaster):
 
         attr_dict = cls._grouped_model_from_json(path)
         init_args = inspect.signature(cls.__init__).parameters.keys()
-        init_cls = [
-            attr_dict[arg] for arg in init_args if arg not in {"self", "kwargs"}
-        ]
+        init_cls = [attr_dict[arg] for arg in init_args if arg not in {"self", "kwargs"}]
         instance = cls(*init_cls)
         for key, value in attr_dict.items():
             if key not in init_args:
@@ -507,12 +491,9 @@ class GroupedProphet(GroupedForecaster):
 
     def _grouped_model_to_dict(self):
 
-        model_dict = {
-            attr: getattr(self, attr) for attr in GROUPED_MODEL_BASE_ATTRIBUTES
-        }
+        model_dict = {attr: getattr(self, attr) for attr in GROUPED_MODEL_BASE_ATTRIBUTES}
         model_dict["model"] = {
-            str(master_key): model_to_json(model)
-            for master_key, model in self.model.items()
+            str(master_key): model_to_json(model) for master_key, model in self.model.items()
         }
         return model_dict
 
@@ -535,9 +516,7 @@ class GroupedProphet(GroupedForecaster):
         :return: Dictionary of instance attributes
         """
         if not os.path.isfile(path):
-            raise DivinerException(
-                f"There is no valid model saved at the specified path: {path}"
-            )
+            raise DivinerException(f"There is no valid model saved at the specified path: {path}")
         with open(path, "r") as f:
             raw_model = json.load(f)
 

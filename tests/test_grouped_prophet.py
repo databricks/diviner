@@ -43,9 +43,7 @@ def test_prophet_default_fit():
     first_model = _get_individual_model(model, 0)
 
     assert len(first_model.history) > 0
-    assert (
-        len(first_model.params["trend"][0]) == 1000
-    )  # fit value for each value in series
+    assert len(first_model.params["trend"][0]) == 1000  # fit value for each value in series
     assert len(list(model.model.keys())) == 2
 
 
@@ -229,19 +227,11 @@ def test_prophet_group_subset_predict_raises_and_warns():
         key_entries.append(list(v.values())[0])
     groups = [(key_entries[0], key_entries[1]), ("missing", "key")]
 
-    with pytest.raises(
-        DivinerException, match="Cannot perform predictions due to submitted"
-    ):
+    with pytest.raises(DivinerException, match="Cannot perform predictions due to submitted"):
         model.predict_groups(groups, _rows_to_generate, "D")
 
-    with pytest.warns(
-        UserWarning, match="Specified groups are unable to be predicted due to "
-    ):
+    with pytest.warns(UserWarning, match="Specified groups are unable to be predicted due to "):
         model.predict_groups(groups, _rows_to_generate, "D", on_error="warn")
 
-    with pytest.raises(
-        DivinerException, match="Groups specified for subset forecasting are not"
-    ):
-        model.predict_groups(
-            ("invalid", "invalid"), _rows_to_generate, "D", on_error="ignore"
-        )
+    with pytest.raises(DivinerException, match="Groups specified for subset forecasting are not"):
+        model.predict_groups(("invalid", "invalid"), _rows_to_generate, "D", on_error="ignore")

@@ -29,9 +29,7 @@ class GroupedForecaster(abc.ABC):
         self._master_key = None
 
     @abc.abstractmethod
-    def fit(
-        self, df, group_key_columns: Tuple[str], y_col: str, datetime_col: str, **kwargs
-    ):
+    def fit(self, df, group_key_columns: Tuple[str], y_col: str, datetime_col: str, **kwargs):
         """
         Generate a grouped representation of the "highly normalized" Dataframe, create a grouping
         key column, and iterate over those grouping keys to generate trained models of the
@@ -109,9 +107,7 @@ class GroupedForecaster(abc.ABC):
 
         """
         if not self.model:
-            raise DivinerException(
-                "The model has not been fit. Please fit the model first."
-            )
+            raise DivinerException("The model has not been fit. Please fit the model first.")
 
     def _model_init_check(self):
         """

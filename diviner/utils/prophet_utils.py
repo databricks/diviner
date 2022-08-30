@@ -22,9 +22,7 @@ def _generate_future_df(model, horizon, frequency):
              remaining datetime event from the training data, continues at a span defined by
              `period_type` for `horizon` number of iterations.
     """
-    return model.make_future_dataframe(
-        periods=horizon, freq=frequency, include_history=False
-    )
+    return model.make_future_dataframe(periods=horizon, freq=frequency, include_history=False)
 
 
 def generate_future_dfs(
@@ -124,9 +122,7 @@ def _cross_validate_and_score_model(
         cutoffs=cutoffs,
         disable_tqdm=kwargs.pop("disable_tqdm", True),
     )
-    horizon_metrics = performance_metrics(
-        model_cv, metrics=metrics, **performance_metrics_args
-    )
+    horizon_metrics = performance_metrics(model_cv, metrics=metrics, **performance_metrics_args)
 
     return {
         metric: horizon_metrics[metric].mean()

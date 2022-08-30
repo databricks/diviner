@@ -18,9 +18,9 @@ def data():
 
 def test_pandas_group_generator_master_key_creation(data):
     grouping_keys = ("a", "b")
-    master_key_add = PandasGroupGenerator(
-        grouping_keys, "ds", "y"
-    )._get_df_with_master_key_column(data)
+    master_key_add = PandasGroupGenerator(grouping_keys, "ds", "y")._get_df_with_master_key_column(
+        data
+    )
 
     for i in range(len(master_key_add)):
         row = master_key_add.iloc[i]
@@ -31,9 +31,7 @@ def test_pandas_group_generator_master_key_creation(data):
 def test_pandas_group_data_creation(data):
     grouping_keys = ("a", "b")
 
-    group_gen = PandasGroupGenerator(
-        grouping_keys, "ds", "y"
-    ).generate_processing_groups(data)
+    group_gen = PandasGroupGenerator(grouping_keys, "ds", "y").generate_processing_groups(data)
 
     updated = data.copy()
     # disable linting because of a pandas tuple implementation bug:
@@ -53,8 +51,7 @@ def test_pandas_group_data_generator_invalid_group_keys(data):
 
     with pytest.raises(
         DivinerException,
-        match="Argument '_group_key_columns' tuple must contain at "
-        "least one string entry.",
+        match="Argument '_group_key_columns' tuple must contain at " "least one string entry.",
     ):
         PandasGroupGenerator(grouping_keys, "ds", "y").generate_processing_groups(data)
 

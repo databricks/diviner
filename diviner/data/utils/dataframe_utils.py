@@ -33,8 +33,7 @@ def apply_datetime_index_to_groups(grouped_data, datetime_col: str):
              set by the inferred frequency of the datetime_col column.
     """
     datetime_indexed = [
-        (master_key, _apply_datetime_index(df, datetime_col))
-        for master_key, df in grouped_data
+        (master_key, _apply_datetime_index(df, datetime_col)) for master_key, df in grouped_data
     ]
 
     return datetime_indexed

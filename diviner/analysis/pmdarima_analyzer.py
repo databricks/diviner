@@ -1,6 +1,7 @@
 import warnings
 
 import pandas as pd
+from packaging.version import Version
 from pmdarima.arima import decompose, ndiffs, nsdiffs, is_constant
 from pmdarima.utils import acf, pacf, diff, diff_inv
 from diviner.data.pandas_group_generator import PandasGroupGenerator
@@ -60,12 +61,9 @@ class PmdarimaAnalyzer:
 
     def _decompose_group(self, group_df, group_key, m, type_, filter_):
         group_df.reset_index(inplace=True)
-        group_decomposition = decompose(
-            x=group_df[self._y_col], type_=type_, m=m, filter_=filter_
-        )
+        group_decomposition = decompose(x=group_df[self._y_col], type_=type_, m=m, filter_=filter_)
         group_result = {
-            key: getattr(group_decomposition, key)
-            for key in group_decomposition._fields
+            key: getattr(group_decomposition, key) for key in group_decomposition._fields
         }
         output_df = pd.DataFrame.from_dict(group_result)
         output_df[self._datetime_col] = group_df[self._datetime_col]
@@ -184,15 +182,14 @@ class PmdarimaAnalyzer:
         """
         self._create_group_df()
         group_constant_check = {
-            group: is_constant(group_df[self._y_col])
-            for group, group_df in self._group_df
+            group: is_constant(group_df[self._y_col]) for group, group_df in self._group_df
         }
         return group_constant_check
 
     @experimental
     def calculate_acf(
         self,
-        unbiased=None,
+        unbiased=False,
         nlags=None,
         qstat=False,
         fft=None,
@@ -218,6 +215,9 @@ class PmdarimaAnalyzer:
 
         :param unbiased: Boolean flag that sets the autocovariance denominator to ``'n-k'`` if
                          ``True`` and ``n`` if ``False``.
+
+                         Note: This argument is deprecated and removed in versions of pmdarima
+                         > 2.0.0
 
                          Default: ``False``
         :param nlags: The count of autocorrelation lags to calculate and return.
@@ -261,24 +261,33 @@ class PmdarimaAnalyzer:
                          denominator mode of calculation for the autocovariance of the series.
         :return: Dictionary of ``{<group_key>: {<acf terms>: <values as array>}}``
         """
+
+        import pmdarima
+
         self._create_group_df()
         group_acf_data = {}
         for group, df in self._group_df:
-            acf_data = acf(
-                x=df[self._y_col],
-                unbiased=unbiased,
-                nlags=nlags,
-                qstat=qstat,
-                fft=fft,
-                alpha=alpha,
-                missing=missing,
-                adjusted=adjusted,
-            )
-            group_data = (
-                {"acf": acf_data[0]}
-                if isinstance(acf_data, tuple)
-                else {"acf": acf_data}
-            )
+            if Version(pmdarima.__version__) < Version("2.0.0"):
+                acf_data = acf(  # pylint: disable=unexpected-keyword-arg
+                    x=df[self._y_col],
+                    unbiased=unbiased,
+                    nlags=nlags,
+                    qstat=qstat,
+                    fft=fft,
+                    alpha=alpha,
+                    missing=missing,
+                )
+            else:
+                acf_data = acf(
+                    x=df[self._y_col],
+                    nlags=nlags,
+                    qstat=qstat,
+                    fft=fft,
+                    alpha=alpha,
+                    missing=missing,
+                    adjusted=adjusted,
+                )
+            group_data = {"acf": acf_data[0]} if isinstance(acf_data, tuple) else {"acf": acf_data}
             if alpha:
                 group_data["confidence_intervals"] = acf_data[1]
                 if qstat:
@@ -329,9 +338,7 @@ class PmdarimaAnalyzer:
         for group, df in self._group_df:
             pacf_data = pacf(x=df[self._y_col], nlags=nlags, method=method, alpha=alpha)
             group_data = (
-                {"pacf": pacf_data[0]}
-                if isinstance(pacf_data, tuple)
-                else {"pacf": pacf_data}
+                {"pacf": pacf_data[0]} if isinstance(pacf_data, tuple) else {"pacf": pacf_data}
             )
             if alpha:
                 group_data["confidence_intervals"] = pacf_data[1]
@@ -398,8 +405,7 @@ class PmdarimaAnalyzer:
             data = payload.get("diff", None)
             if data is None:
                 raise DivinerException(
-                    f"group_diff_data does not contain the key `diff` for group"
-                    f"{group}"
+                    f"group_diff_data does not contain the key `diff` for group" f"{group}"
                 )
             inverted = diff_inv(x=data, lag=lag, differences=differences)
             if recenter:

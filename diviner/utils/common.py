@@ -14,16 +14,10 @@ def _restructure_fit_payload(train_results: List[Dict[str, any]]) -> Dict[str, a
     :param train_results: raw training (fit) results from a grouped model
     :return: dictionary of {master_grouping_key: model}
     """
-    return {
-        group_key: model
-        for payload in train_results
-        for group_key, model in payload.items()
-    }
+    return {group_key: model for payload in train_results for group_key, model in payload.items()}
 
 
-def _reorder_cols(
-    df, key_columns: Tuple[str], master_grouping_key: str
-) -> pd.DataFrame:
+def _reorder_cols(df, key_columns: Tuple[str], master_grouping_key: str) -> pd.DataFrame:
     """
     Helper function for creating a user-friendly schema structure for the output prediction
     dataframe that mirrors what would be expected (grouping columns preceding data).
@@ -34,9 +28,7 @@ def _reorder_cols(
     :param master_grouping_key: the master grouping key for setting the position of that column
     :return: a reformatted and modified schema of the prediction dataframe
     """
-    masked_columns = [
-        col for col in df.columns if col not in key_columns + [master_grouping_key]
-    ]
+    masked_columns = [col for col in df.columns if col not in key_columns + [master_grouping_key]]
     reordered_df = df[[master_grouping_key] + key_columns + masked_columns]
     return reordered_df
 
@@ -159,9 +151,7 @@ def _restrict_model_collection_by_groups(
         for group in groups:
             if group not in model_keys:
                 key_lookup_failures.append(str(group))
-        group_collection = {
-            key: model for key, model in grouped_model.items() if key in groups
-        }
+        group_collection = {key: model for key, model in grouped_model.items() if key in groups}
     else:
         group_collection = grouped_model
     if len(group_collection) == 0:

@@ -27,9 +27,7 @@ def test_individual_model_cross_validate():
         verbosity=3,
     )
 
-    expected_fields = [f"{met}_mean" for met in metrics] + [
-        f"{met}_stddev" for met in metrics
-    ]
+    expected_fields = [f"{met}_mean" for met in metrics] + [f"{met}_stddev" for met in metrics]
     for key, value in cv_results.items():
         assert key in expected_fields
         assert value > 0

@@ -14,7 +14,7 @@ def get_version(rel_path: Union[List[str], str]) -> str:
     raise RuntimeError("Unable to find version string.")
 
 
-REQUIREMENTS = ["numpy", "pandas", "prophet", "pmdarima"]
+REQUIREMENTS = ["numpy", "pandas", "prophet", "pmdarima", "packaging"]
 
 setup(
     name="diviner",

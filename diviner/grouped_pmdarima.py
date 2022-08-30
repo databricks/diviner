@@ -92,9 +92,7 @@ class GroupedPmdarima(GroupedForecaster):
             raise DivinerException(f"The model for group {group_key} was not trained.")
         return model_instance
 
-    def _fit_individual_model(
-        self, group_key, group_df, silence_warnings, **fit_kwargs
-    ):
+    def _fit_individual_model(self, group_key, group_df, silence_warnings, **fit_kwargs):
 
         y = group_df[self._y_col]
         model = deepcopy(self._model_template)
@@ -262,21 +260,13 @@ class GroupedPmdarima(GroupedForecaster):
             self._group_key_columns, self._datetime_col, self._y_col
         ).generate_processing_groups(df)
 
-        dt_indexed_group_data = apply_datetime_index_to_groups(
-            grouped_data, self._datetime_col
-        )
+        dt_indexed_group_data = apply_datetime_index_to_groups(grouped_data, self._datetime_col)
 
-        self._max_datetime_per_group = _get_last_datetime_per_group(
-            dt_indexed_group_data
-        )
-        self._datetime_freq_per_group = _get_datetime_freq_per_group(
-            dt_indexed_group_data
-        )
+        self._max_datetime_per_group = _get_last_datetime_per_group(dt_indexed_group_data)
+        self._datetime_freq_per_group = _get_datetime_freq_per_group(dt_indexed_group_data)
 
         fit_model = [
-            self._fit_individual_model(
-                group_key, group_df, silence_warnings, **fit_kwargs
-            )
+            self._fit_individual_model(group_key, group_df, silence_warnings, **fit_kwargs)
             for group_key, group_df in dt_indexed_group_data
         ]
 
@@ -292,14 +282,24 @@ class GroupedPmdarima(GroupedForecaster):
         periods = row_entry[n_periods_col]
         inverse_transform = row_entry.get("inverse_transform", True)
         model = self._extract_individual_model(group_key)
-        prediction = model.predict(
-            n_periods=periods,
-            X=exog,
-            return_conf_int=return_conf_int,
-            alpha=alpha,
-            inverse_transform=inverse_transform,
-            **predict_kwargs,
-        )
+
+        if isinstance(self._model_template, Pipeline):
+            prediction = model.predict(
+                n_periods=periods,
+                X=exog,
+                return_conf_int=return_conf_int,
+                alpha=alpha,
+                inverse_transform=inverse_transform,
+                **predict_kwargs,
+            )
+        else:
+            prediction = model.predict(
+                n_periods=periods,
+                X=exog,
+                return_conf_int=return_conf_int,
+                alpha=alpha,
+                **predict_kwargs,
+            )
         if return_conf_int:
             prediction_raw = pd.DataFrame.from_records(prediction).T
             prediction_raw.columns = [self._predict_col, "_yhat_err"]
@@ -321,9 +321,7 @@ class GroupedPmdarima(GroupedForecaster):
 
         return prediction_df
 
-    def _run_predictions(
-        self, df, n_periods_col="n_periods", exog=None, **predict_kwargs
-    ):
+    def _run_predictions(self, df, n_periods_col="n_periods", exog=None, **predict_kwargs):
 
         self._fit_check()
         processing_data = PandasGroupGenerator(
@@ -447,7 +445,7 @@ class GroupedPmdarima(GroupedForecaster):
         :param inverse_transform: Optional argument used only for ``Pipeline`` models that include
                                   either a ``BoxCoxEndogTransformer`` or a ``LogEndogTransformer``.
 
-                                  Default: ``True``
+                                  Default: ``False``
         :param exog: Exogenous regressor components as a 2-D array.
                      Note: if the model is trained with exogenous regressor components, this
                      argument is required.
@@ -500,9 +498,7 @@ class GroupedPmdarima(GroupedForecaster):
         for group in self.model.keys():
             arima_model = _extract_arima_model(self._extract_individual_model(group))
             metric_extract[group] = _get_arima_training_metrics(arima_model)
-        return create_reporting_df(
-            metric_extract, self._master_key, self._group_key_columns
-        )
+        return create_reporting_df(metric_extract, self._master_key, self._group_key_columns)
 
     def get_model_params(self):
         """
@@ -517,13 +513,9 @@ class GroupedPmdarima(GroupedForecaster):
         for group in self.model.keys():
             arima_model = _extract_arima_model(self._extract_individual_model(group))
             params_extract[group] = _get_arima_params(arima_model)
-        return create_reporting_df(
-            params_extract, self._master_key, self._group_key_columns
-        )
+        return create_reporting_df(params_extract, self._master_key, self._group_key_columns)
 
-    def cross_validate(
-        self, df, metrics, cross_validator, error_score=np.nan, verbosity=0
-    ):
+    def cross_validate(self, df, metrics, cross_validator, error_score=np.nan, verbosity=0):
         """
         Method for performing cross validation on each group of the fit model.
         The supplied cross_validator to this method will be used to perform either rolling or
@@ -575,9 +567,7 @@ class GroupedPmdarima(GroupedForecaster):
             verbosity,
         )
 
-        return create_reporting_df(
-            cv_results, self._master_key, self._group_key_columns
-        )
+        return create_reporting_df(cv_results, self._master_key, self._group_key_columns)
 
     def save(self, path: str):
         """
