@@ -5,6 +5,21 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: >
+          [Optional] Repository name with owner. For example, databricks/diviner.
+           Defaults to the repository that triggered a workflow.
+        required: false
+        default: ""
+      ref:
+        description: >
+          [Optional] The branch, tag or SHA to checkout. When checking out the repository that
+           triggered a workflow, this defaults to the reference or SHA for that event. Otherwise,
+           uses the default branch.
+        required: false
+        default: "main"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
