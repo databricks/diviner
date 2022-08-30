@@ -170,7 +170,9 @@ def test_pmdarima_calculate_acf_minimal_args(data):
     ).calculate_acf(unbiased=False, nlags=90, qstat=False, fft=False, alpha=None)
     for payload in acf_data.values():
         assert {"acf"}.issubset(payload.keys())
-        assert any(key not in payload.keys() for key in ["qstat", "pvalues", "confidence_intervals"])
+        assert any(
+            key not in payload.keys() for key in ["qstat", "pvalues", "confidence_intervals"]
+        )
         assert len(payload.get("acf")) == 91
 
 

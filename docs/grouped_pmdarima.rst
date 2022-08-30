@@ -187,7 +187,7 @@ inverse_transform
     ``model_template`` type passed in is a ``Pipeline`` that contains a transformer).
     An inversion of the endogeneous regression term can be helpful for distributions that are highly non-normal.
     For further reading on what the purpose of these functions are, why they are used, and how they might be applicable
-    to a given time series, see this `link <https://en.wikipedia.org/wiki/Data_transformation_(statistics)>`_.
+    to a given time series, see `data transformation <https://en.wikipedia.org/wiki/Data_transformation_(statistics)>`_.
 
 exog
     *[Optional]* If the original model was trained with an exogeneous regressor elements, the prediction will require these
@@ -373,7 +373,7 @@ The metrics that are returned from fitting are:
 
 .. note::
     Out of bag error metric (oob) is only calculated if the underlying ``ARIMA`` model has a value set for the argument
-    ``out_of_sample_size``. See `link here <https://en.wikipedia.org/wiki/Out-of-bag_error>`_ for more information.
+    ``out_of_sample_size``. See `out-of-bag-error <https://en.wikipedia.org/wiki/Out-of-bag_error>`_ for more information.
 
 Example:
 

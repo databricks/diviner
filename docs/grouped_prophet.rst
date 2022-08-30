@@ -78,8 +78,8 @@ frequency
     The periodicity between each forecast event. Note that this value does not have to match the periodicity of the
     training data (i.e., training data can be in days and predictions can be in months, minutes, hours, or years).
 
-    The frequency abbreviations that are allowed can be found
-    `here. <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_
+    The frequency abbreviations that are allowed can be found at the following link for pandas
+    `timeseries <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
 
 .. note:: The generation of error estimates (`yhat_lower` and `yhat_upper`) in the output of a forecast are controlled
     through the use of the ``Prophet`` argument ``uncertainty_samples`` during class instantiation, prior to :ref:`fitting`
