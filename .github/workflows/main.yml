@@ -9,6 +9,8 @@ on:
     branches:
       - main
       - branch-[0-9]+.[0-9]+
+  schedule:
+    - cron: "42 9 */2 * *"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
