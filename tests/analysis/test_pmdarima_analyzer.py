@@ -1,4 +1,3 @@
-from numpy.testing import assert_allclose
 import pytest
 from tests import data_generator
 from pmdarima.arima.auto import AutoARIMA
