@@ -34,7 +34,7 @@ if __name__ == "__main__":
         steps=[
             (
                 "box",
-                BoxCoxEndogTransformer(lmbda2=0.4, neg_action="raise", floor=1e-12),
+                BoxCoxEndogTransformer(lmbda2=0.4, neg_action="ignore", floor=1e-12),
             ),
             ("arima", AutoARIMA(out_of_sample_size=60, max_p=4, max_q=4, max_d=4)),
         ]
