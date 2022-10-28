@@ -12,7 +12,7 @@ Thank you for submitting a feature request. **Before proceeding, please review D
 The Diviner Community encourages new feature contributions. Would you or another member of your organization be willing to contribute an implementation of this feature?
 
 - [ ] Yes. I can contribute this feature independently.
-- [ ] Yes. I would be willing to contribute this feature with guidance from the MLflow community.
+- [ ] Yes. I would be willing to contribute this feature with guidance from the Diviner community.
 - [ ] No. I cannot contribute this feature at this time.
 
 ## Proposal Summary
